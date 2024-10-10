@@ -1,0 +1,235 @@
+{% extends 'layouts/app.html' %} {% block css %}
+<style>
+  .titulo_seccion {
+    font-weight: bold;
+  }
+  #video {
+    width: 100%; /* Ajusta el tamaño según sea necesario */
+    height: auto; /* Mantiene la proporción del video */
+  }
+
+  #snapshot_registro {
+    width: 100%;
+  }
+  #modal_success .modal-content {
+    background-color: rgb(0, 196, 75);
+    color: white;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="row mt-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-12">
+            <h4 class="w-100 text-center">
+              Autenticación para transacciones digitales en Telecomunicaciones
+            </h4>
+          </div>
+          <div class="col-12 text-center">
+            <button class="btn btn-primary" id="iniciaAuthenticacion">
+              Iniciar Autenticación
+            </button>
+            <a
+              href="#"
+              id="btnRegistrarse"
+              data-bs-toggle="modal"
+              data-bs-target="#modal_registro"
+              class="btn btn-outline-primary"
+              >Registrarse</a
+            >
+          </div>
+        </div>
+        <div class="row mt-4" id="contenedor_autenticacion">
+          <div class="col-md-4 text-center">
+            <span class="titulo_seccion">Tiempo restante</span>
+          </div>
+          <div class="col-md-4 text-center">
+            <span class="titulo_seccion">Cámara</span>
+            <img id="video" src="" style="width: 100%; height: auto" />
+          </div>
+          <div class="col-md-4 text-center">
+            <span class="titulo_seccion"
+              >Muestre el siguiente número con la mano</span
+            >
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-12 text-center">
+            <input
+              type="text"
+              id="emotion-output"
+              class="form-control"
+              placeholder="Emoción detectada"
+              readonly
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% include 'modal/registro.html' %} {% endblock %} {% block scripts %}
+<script>
+  // REGISTRO
+  let isVideoActive = false;
+  let valida_img = false;
+  let error_registro = document.getElementById("errorRegistro");
+  error_registro.parentNode.classList.add("oculto");
+  let modal_registro = bootstrap.Modal.getOrCreateInstance(
+    document.getElementById("modal_registro")
+  );
+  let modal_success = bootstrap.Modal.getOrCreateInstance(
+    document.getElementById("modal_success")
+  );
+
+  const btnRegistrarse = document.getElementById("btnRegistrarse");
+
+  btnRegistrarse.addEventListener("click", (e) => {
+    e.preventDefault();
+    isVideoActive = false;
+    toggleVideo(true);
+  });
+
+  // Acceder a la cámara del usuario
+  const video_registro = document.getElementById("video_registro");
+  const canvas_registro = document.getElementById("canvas_registro");
+  const snapshot_registro = document.getElementById("snapshot_registro");
+  const captureButton = document.getElementById("capture_registro");
+  const registerButton = document.getElementById("register");
+
+  // Obtener acceso a la cámara
+  const initCamaraRegistro = () => {
+    stream_camara = navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        video_registro.srcObject = stream;
+      })
+      .catch((err) => {
+        console.error("Error al acceder a la cámara: ", err);
+      });
+  };
+
+  // Capturar la imagen al hacer clic en el botón
+  captureButton.addEventListener("click", () => {
+    const context = canvas_registro.getContext("2d");
+
+    // Dibuja el video en el canvas manteniendo la relación de aspecto
+    const videoWidth = video_registro.videoWidth;
+    const videoHeight = video_registro.videoHeight;
+
+    // Ajustar el canvas a la relación de aspecto del video
+    canvas_registro.width = videoWidth;
+    canvas_registro.height = videoHeight;
+
+    context.drawImage(
+      video_registro,
+      0,
+      0,
+      canvas_registro.width,
+      canvas_registro.height
+    );
+    const dataUrl = canvas_registro.toDataURL("image/jpeg", 0.9);
+    snapshot_registro.src = dataUrl;
+    snapshot_registro.style.display = "block"; // Mostrar la imagen capturada
+    valida_img = true;
+  });
+
+  // Enviar la captura y el usuario al servidor
+  registerButton.addEventListener("click", () => {
+    const usuario = document.getElementById("usuario").value;
+    const imageData = canvas_registro.toDataURL("image/jpeg", 0.9);
+    if (valida_img && usuario.trim() != "") {
+      error_registro.parentNode.classList.add("oculto");
+      // Enviar la imagen y el nombre de usuario al servidor
+      fetch("/registrar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          usuario: usuario,
+          imagen: imageData,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            error_registro.parentNode.classList.remove("oculto");
+            error_registro.innerHTML = data.error;
+          } else {
+            modal_registro.hide();
+            modal_success.show();
+            setTimeout(() => {
+              modal_success.hide();
+            }, 800);
+            // Manejar la respuesta del servidor
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    } else {
+      error_registro.parentNode.classList.remove("oculto");
+      error_registro.innerHTML = "Debes ingresar el usuario y tomar la captura";
+    }
+  });
+
+  const stop_camera = () => {
+    const mediaStream = video_registro.srcObject;
+    if (mediaStream) {
+      const tracks = mediaStream.getTracks();
+      tracks[0].stop();
+      tracks.forEach((track) => track.stop());
+    }
+  };
+
+  // INICIO SESIÓN
+  const iniciaAuthenticacion = document.getElementById("iniciaAuthenticacion");
+  iniciaAuthenticacion.addEventListener("click", () => {
+    isVideoActive = true;
+    stop_camera();
+    toggleVideo();
+  });
+  var interval_respuestas = null;
+  const iniciaDeteccion = () => {
+    interval_respuestas = setInterval(async () => {
+      const response = await fetch("/emotion");
+      const data = await response.json();
+      document.getElementById("emotion-output").value =
+        data.emotion || "Error al detectar emoción";
+    }, 1000);
+  };
+
+  addEventListener("DOMContentLoaded", (event) => {
+    toggleVideo();
+  });
+
+  // Iniciar la cámara
+  function toggleVideo(registro = false) {
+    fetch("/toggle_video", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ active: isVideoActive }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!isVideoActive) {
+          document.getElementById("video").src = ""; // Desactivar imagen
+          clearInterval(interval_respuestas);
+          if (registro) {
+            initCamaraRegistro();
+          }
+        } else {
+          document.getElementById("video").src = "{{ url_for('video_feed') }}"; // Reactivar imagen
+          iniciaDeteccion();
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+  }
+</script>
+{% endblock %}

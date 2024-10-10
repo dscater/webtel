@@ -1,0 +1,57 @@
+<div class="modal fade" id="modal_registro">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-12">
+            <h5 class="w-100 text-center color-gray">Registro</h5>
+          </div>
+          <div class="col-12">
+            <label>Usuario*:</label>
+            <input type="text" class="form-control" id="usuario" />
+          </div>
+          <div class="col-md-6 mt-3">
+            <label>Cámara:</label>
+            <video id="video_registro" width="100%" autoplay></video>
+            <button id="capture_registro" class="btn btn-primary mt-2 btn-sm">
+              Capturar Imagen
+            </button>
+          </div>
+          <div class="col-md-6 mt-3">
+            <label>Captura de cámara:</label>
+            <canvas id="canvas_registro" style="display: none"></canvas>
+            <img
+              id="snapshot_registro"
+              src=""
+              alt="Tu captura"
+              style="display: none"
+            />
+          </div>
+          <div class="col-12">
+            <div class="alert alert-danger" id="errorRegistro"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          data-bs-dismiss="modal"
+        >
+          Cancelar
+        </button>
+        <button id="register" class="btn btn-success">Registrarse</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal_success" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content modal-success">
+      <div class="modal-body">
+        <h4 class="w-100">Registro éxitoso</h4>
+      </div>
+    </div>
+  </div>
+</div>

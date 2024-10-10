@@ -1,0 +1,191 @@
+import os
+from app import app
+from flask import render_template
+from flask import Flask, request, jsonify,Response
+import base64
+from io import BytesIO
+from PIL import Image
+import cv2
+import mediapipe as mp
+import math
+from app import db
+from app.models.usuario import Usuario
+
+
+# Inicializar la captura de video y MediaPipe
+cap = None
+mpDibujo = mp.solutions.drawing_utils
+ConfDibu = mpDibujo.DrawingSpec(thickness=1, circle_radius=1)
+mpMallaFacial = mp.solutions.face_mesh
+MallaFacial = mpMallaFacial.FaceMesh(max_num_faces=1)
+video_active = False
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+
+@app.route('/registrarse')
+def about():
+    return render_template('registro.html')
+
+@app.route('/registrar', methods=['POST'])
+def registrar():
+    data = request.get_json()
+    usuario = data.get('usuario')
+    imagen = data.get('imagen')
+
+    # Validar que se haya proporcionado un nombre de usuario
+    if not usuario:
+        return jsonify({'error': 'El nombre de usuario es obligatorio.'}), 400
+
+    # Validar que el usuario no exista en la base de datos
+    existing_user = Usuario.query.filter_by(usuario=usuario).first()
+    if existing_user:
+        return jsonify({'error': 'El usuario ya existe.'}), 400
+
+    # Validar que se haya proporcionado una imagen
+    if not imagen:
+        return jsonify({'error': 'No se ha cargado ninguna imagen.'}), 400
+
+    # Procesar la imagen
+    try:
+        # Eliminar el prefijo de la cadena de imagen
+        header, encoded = imagen.split(',', 1)
+        # Decodificar la imagen
+        binary_data = base64.b64decode(encoded)
+        image = Image.open(BytesIO(binary_data))
+        
+        # Crear la carpeta si no existe
+        image_dir = 'app/static/images/'
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+
+        # Guardar la foto
+        image_path = os.path.join(image_dir, f'{usuario}.jpg')
+        image.save(image_path)
+    except Exception as e:
+        return jsonify({'error': 'Error al procesar la imagen: ' + str(e)}), 500
+
+    new_user = Usuario(usuario=usuario, foto=f'app/static/images/{usuario}.jpg')
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message': 'Usuario registrado exitosamente'}), 201
+
+@app.route('/emotion', methods=['GET'])
+def emotion_detection():
+    global cap
+    if video_active and cap is None:
+        cap = cv2.VideoCapture(0)
+    if cap is not None:
+        ret, frame = cap.read()
+        if not ret:
+            return jsonify({"error": "No se pudo capturar el frame"}), 500
+
+        emotion = detect_emotion(frame)
+        return jsonify({"emotion": emotion})
+    else:
+        return jsonify({"error": "Captura no inicializada"})
+
+@app.route('/video_feed')
+def video_feed():
+    global cap
+    if video_active:
+        return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    else:
+        return ('',204)
+
+@app.route('/toggle_video', methods=['POST'])
+def toggle_video():
+    global video_active
+    video_active = request.json.get('active', True)
+    if video_active == False:
+        release_camera()
+    return jsonify({"video_active": video_active})
+
+#funciones
+# Función para detectar emociones
+def detect_emotion(frame):
+    frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    resultados = MallaFacial.process(frameRGB)
+    emotion = "Neutro"  # Valor por defecto
+    if resultados.multi_face_landmarks:
+        for rostros in resultados.multi_face_landmarks:
+            mpDibujo.draw_landmarks(frame, rostros, mpMallaFacial.FACEMESH_TESSELATION, ConfDibu, ConfDibu)
+            lista = []
+            for id, puntos in enumerate(rostros.landmark):
+                al, an, c = frame.shape
+                x, y = int(puntos.x * an), int(puntos.y * al)
+                lista.append([id, x, y])
+                if len(lista) == 468:
+                    #ceja derecha
+                    x1, y1 = lista[65][1:]
+                    x2,y2 =lista[158][1:]
+                    cx,cy = (x1 + x2) // 2, (y1 + y2) // 2
+                    #cv2.line(frame,(x1,y1),(x2,y2),(0,0,0),t)
+                    #cv2.circle(frame,(x1,y1),r,(0,0,0), cv2.FILLED)
+                    #cv2.circle(frame,(x2,y2),r,(0,0,0), cv2.FILLED)
+                    #cv2.circle(frame,(cx,cy),r,(0,0,0), cv2.FILLED)
+                    longitud1 = math.hypot(x2 - x1, y2 - y1)
+                    print(longitud1)
+
+                    #ceja izquierda
+                    x3, y3 = lista[295][1:]
+                    x4,y4 = lista[385][1:]
+                    cx2, cy2 = (x3 + x4) // 2, (y3 + y4) // 2
+                    longitud2 = math.hypot(x4-x3, y4-y3)
+                    print(longitud2)
+
+                    #boca extremos
+                    x5, y5 = lista[78][1:]
+                    x6, y6 = lista[308][1:]
+                    cx3, cy3 = (x5 + x6) // 2, (y5 + y6) // 2
+                    longitud3 = math.hypot(x6 - x5, y6 - y5)
+                    print(longitud3)
+
+                    #boca apertura
+                    x7, y7 = lista[13][1:]
+                    x8, y8 = lista[14][1:]
+                    cx4, cy4 = (x7 + x8) // 2, (y7 + y8) // 2
+                    longitud4 = math.hypot(x8-x7, y8-y7)
+                    print(longitud4)
+
+                    # Clasificación
+                    if longitud1 < 22 and longitud2 < 22 and 70 < longitud3 < 80 and longitud4 < 5:
+                        print("enojado")
+                        emotion = "Enojado"
+                    elif 20 < longitud1 < 30 and 20 < longitud2 < 30 and longitud3 > 80 and 10 < longitud4 < 20:
+                        emotion = "Feliz"
+                        print("feliz")
+                    elif longitud1 > 23 and longitud2 > 22 and longitud3 < 90 and longitud4 > 30:
+                        emotion = "Asombrado"
+                        print("asombrado")
+                    elif 25 < longitud1 < 35 and 25 < longitud2 < 35 and 60 < longitud3 < 70 and longitud4 < 4:
+                        print("triste")
+                        emotion = "Triste"
+                    print("neutro")
+                    
+
+    return emotion
+
+
+def generate_frames():
+    global cap
+    if video_active and cap is None:
+        cap = cv2.VideoCapture(0)
+    while video_active:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    release_camera()
+        
+#libera la camara        
+def release_camera():
+    global cap
+    if cap is not None:
+        cap.release()
+        cap = None

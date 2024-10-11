@@ -15,6 +15,10 @@
     background-color: rgb(0, 196, 75);
     color: white;
   }
+
+  #txtUsuario {
+    font-weight: bold;
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="row mt-3">
@@ -41,6 +45,14 @@
             >
           </div>
         </div>
+        <div class="row mt-4" id="contenedorLoginFacial">
+          <div class="col-md-4 mx-auto">
+            <div class="verificandoUsuario">
+              Verificando al usuario: <span id="txtUsuario"></span>
+            </div>
+            <img id="videoFacial" src="" style="width: 100%" height="auto" />
+          </div>
+        </div>
         <div class="row mt-4" id="contenedor_autenticacion">
           <div class="col-md-4 text-center">
             <span class="titulo_seccion">Tiempo restante</span>
@@ -48,16 +60,6 @@
           <div class="col-md-4 text-center">
             <span class="titulo_seccion">Cámara</span>
             <img id="video" src="" style="width: 100%; height: auto" />
-          </div>
-          <div class="col-md-4 text-center">
-            <span class="titulo_seccion"
-              >Muestre el siguiente número con la mano</span
-            >
-          </div>
-        </div>
-
-        <div class="row mt-4">
-          <div class="col-12 text-center">
             <input
               type="text"
               id="emotion-output"
@@ -66,15 +68,130 @@
               readonly
             />
           </div>
+          <div class="col-md-4 text-center">
+            <span class="titulo_seccion"
+              >Muestre el siguiente número con la mano</span
+            >
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-{% include 'modal/registro.html' %} {% endblock %} {% block scripts %}
+{% include 'modal/registro.html' %} {% include 'modal/login.html' %} {% endblock
+%} {% block scripts %}
 <script>
+  // LOGIN
+  let login = false;
+  let usuario_logeado = null;
+  let usuarioLogin = document.getElementById("usuarioLogin");
+  let btnLogin = document.getElementById("btnLogin");
+  const txtUsuario = document.getElementById("txtUsuario");
+  const modal_login = bootstrap.Modal.getOrCreateInstance(
+    document.getElementById("modal_login")
+  );
+  const videoFacial = document.getElementById("videoFacial");
+  let errorLogin = document.getElementById("errorLogin");
+  errorLogin.parentNode.classList.add("oculto");
+  const iniciaAuthenticacion = document.getElementById("iniciaAuthenticacion");
+
+  const contenedorLoginFacial = document.getElementById(
+    "contenedorLoginFacial"
+  );
+  const contenedor_autenticacion = document.getElementById(
+    "contenedor_autenticacion"
+  );
+
+  contenedorLoginFacial.classList.add("oculto");
+  contenedor_autenticacion.classList.add("oculto");
+
+  iniciaAuthenticacion.addEventListener("click", () => {
+    modal_login.show();
+  });
+
+  btnLogin.addEventListener("click", () => {
+    fetch("/verifica_usuario", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ usuario: usuarioLogin.value }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (typeof data.error != "undefined" || !data.existe) {
+          errorLogin.parentNode.classList.remove("oculto");
+          if (typeof data.error != "undefined") {
+            errorLogin.innerHTML = data.error;
+          } else {
+            errorLogin.innerHTML = data.mensaje;
+          }
+        } else {
+          usuario_logeado = data.usuario;
+          txtUsuario.innerText = usuario_logeado.usuario;
+          contenedorLoginFacial.classList.remove("oculto");
+          usuarioLogin.value = "";
+          modal_login.hide();
+          login = true;
+          isVideoActive = true;
+          stop_camera();
+          toggleVideo();
+          ocultaValidaciones();
+          iniciaLoginFacial();
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+  });
+
+  const iniciaLoginFacial = () => {};
+  const ocultaValidaciones = () => {};
+  const iniciaValidaciones = () => {};
+
+  var interval_respuestas_emociones = null;
+  var interval_respuestas_facial = null;
+  const iniciaDeteccion = () => {
+    document.getElementById("videoFacial").src = "";
+    document.getElementById("video").src = "";
+    if (login) {
+      document.getElementById("videoFacial").src =
+        "{{ url_for('video_feed') }}"; // Reactivar facial
+      interval_respuestas_facial = setInterval(()=>{
+        console.log("Reconociendo...")
+        enviaRostroLogin();
+      }, 4000);
+    } else {
+      document.getElementById("video").src = "{{ url_for('video_feed') }}"; // Reactivar emociones
+      interval_respuestas_emociones = setInterval(async () => {
+        const response = await fetch("/emotion");
+        const data = await response.json();
+        document.getElementById("emotion-output").value =
+          data.emotion || "Error al detectar emoción";
+      }, 1000);
+    }
+  };
+
+  const enviaRostroLogin = async () => {
+    try {
+      const response = await fetch(
+        `/login_facial?usuario=${encodeURIComponent(usuario_logeado.usuario)}`
+      );
+      const data = await response.json();
+      console.log(data);
+      if (data.existe) {
+      } else {
+      }
+    } catch (error) {
+      console.error("Error en el envío de rostro:", error);
+    } finally {
+      // Reprograma la función para ejecutarse después de 4 segundos
+    }
+  };
+  addEventListener("DOMContentLoaded", (event) => {
+    toggleVideo();
+  });
+
   // REGISTRO
-  let isVideoActive = false;
+  var isVideoActive = false;
   let valida_img = false;
   let error_registro = document.getElementById("errorRegistro");
   error_registro.parentNode.classList.add("oculto");
@@ -186,27 +303,6 @@
     }
   };
 
-  // INICIO SESIÓN
-  const iniciaAuthenticacion = document.getElementById("iniciaAuthenticacion");
-  iniciaAuthenticacion.addEventListener("click", () => {
-    isVideoActive = true;
-    stop_camera();
-    toggleVideo();
-  });
-  var interval_respuestas = null;
-  const iniciaDeteccion = () => {
-    interval_respuestas = setInterval(async () => {
-      const response = await fetch("/emotion");
-      const data = await response.json();
-      document.getElementById("emotion-output").value =
-        data.emotion || "Error al detectar emoción";
-    }, 1000);
-  };
-
-  addEventListener("DOMContentLoaded", (event) => {
-    toggleVideo();
-  });
-
   // Iniciar la cámara
   function toggleVideo(registro = false) {
     fetch("/toggle_video", {
@@ -219,13 +315,14 @@
       .then((response) => response.json())
       .then((data) => {
         if (!isVideoActive) {
+          document.getElementById("videoFacial").src = ""; // Desactivar imagen
           document.getElementById("video").src = ""; // Desactivar imagen
-          clearInterval(interval_respuestas);
+          clearInterval(interval_respuestas_emociones);
+          clearInterval(interval_respuestas_facial);
           if (registro) {
             initCamaraRegistro();
           }
         } else {
-          document.getElementById("video").src = "{{ url_for('video_feed') }}"; // Reactivar imagen
           iniciaDeteccion();
         }
       })

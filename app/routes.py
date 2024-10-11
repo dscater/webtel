@@ -6,6 +6,11 @@ import base64
 from io import BytesIO
 from PIL import Image
 import cv2
+from matplotlib import pyplot
+import matplotlib
+matplotlib.use('Agg')
+from mtcnn.mtcnn import MTCNN
+import numpy as np
 import mediapipe as mp
 import math
 from app import db
@@ -24,6 +29,89 @@ video_active = False
 def home():
     return render_template('index.html')
 
+@app.route('/verifica_usuario',methods=['POST'])
+def verifica_usuario():
+    data = request.get_json()
+    usuario_nombre = data.get('usuario')
+    if not usuario_nombre:
+        return jsonify({"error": "No se proporcionó el nombre de usuario"}), 400
+
+    # Verificar si el usuario existe en la base de datos
+    usuario = Usuario.query.filter_by(usuario=usuario_nombre).first()
+    if usuario:
+        usuario_data = {
+            "id": usuario.id,
+            "usuario": usuario.usuario,
+            "foto": usuario.foto
+        }
+        return jsonify({"existe": True, "mensaje": "El usuario existe en la base de datos.","usuario":usuario_data}), 200
+    else:
+        return jsonify({"existe": False, "mensaje": "El usuario no existe en la base de datos."}), 404
+
+@app.route('/login_facial', methods=['GET'])
+def login_facial():
+    usuario_nombre = request.args.get("usuario")
+    global cap
+    try:
+        if cap is not None:
+            ret, frame = cap.read()
+            if not ret:
+                return jsonify({"error": "No se pudo capturar el frame"}), 500
+
+            # Crear la carpeta si no existe
+            image_dir = 'app/static/images/logs'
+            if not os.path.exists(image_dir):
+                os.makedirs(image_dir)
+
+            image_dir_login = 'app/static/images/logs/login'
+            if not os.path.exists(image_dir_login):
+                os.makedirs(image_dir_login)
+
+            # Guardar la foto
+            image_path_log = os.path.join(image_dir, f'{usuario_nombre}LOG.jpg')
+            image_path_login = os.path.join(image_dir_login, f'{usuario_nombre}LOG.jpg')
+
+            # Eliminar la imagen anterior si existe
+            if os.path.exists(image_path_log):
+                os.remove(image_path_log)
+
+            # Guardar la nueva imagen
+            cv2.imwrite(image_path_log, frame)
+
+            # Procesar la imagen para detectar caras
+            pixeles = cv2.imread(image_path_log)
+            detector = MTCNN()
+            caras = detector.detect_faces(pixeles)
+
+            # Registrar rostro y guardarlo en el path de login
+            reg_rostro(image_path_log, caras, image_path_login)
+
+            # Comparar las imágenes
+            ruta_registro = f"app/static/images/registros/{usuario_nombre}.jpg"
+            ruta_login = f"app/static/images/logs/login/{usuario_nombre}LOG.jpg"
+
+            if os.path.exists(ruta_registro) and os.path.exists(ruta_login):
+                rostro_reg = cv2.imread(ruta_registro, 0)
+                rostro_login = cv2.imread(ruta_login, 0)
+                # Comparar las imágenes
+                similitud = comparar_imgs(rostro_reg, rostro_login)
+                print(similitud)
+
+                if similitud >= 0.90:
+                    return jsonify({"existe": True})
+                else:
+                    return jsonify({"existe": False})
+            else:
+                return jsonify({"error": "No se pudo verificar la sesión"})
+        else:
+            return jsonify({"error": "Captura no inicializada"})
+
+    except Exception as e:
+        # Capturar cualquier error inesperado y devolver un mensaje adecuado
+        return jsonify({"error": f"Se produjo un error: {str(e)}"}), 500
+
+    finally:
+        pyplot.close()  # Cerrar cualquier gráfico de matplotlib que se esté utilizando
 
 @app.route('/registrarse')
 def about():
@@ -60,10 +148,20 @@ def registrar():
         image_dir = 'app/static/images/'
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
+            
+        # Crear la carpeta si no existe
+        image_dir_reg = 'app/static/images/registros'
+        if not os.path.exists(image_dir_reg):
+            os.makedirs(image_dir_reg)
 
         # Guardar la foto
         image_path = os.path.join(image_dir, f'{usuario}.jpg')
+        image_path_reg = os.path.join(image_dir_reg, f'{usuario}.jpg')
         image.save(image_path)
+        pixeles = cv2.imread(image_path)
+        detector = MTCNN()
+        caras = detector.detect_faces(pixeles)
+        reg_rostro(image_path,caras,image_path_reg)
     except Exception as e:
         return jsonify({'error': 'Error al procesar la imagen: ' + str(e)}), 500
 
@@ -76,8 +174,6 @@ def registrar():
 @app.route('/emotion', methods=['GET'])
 def emotion_detection():
     global cap
-    if video_active and cap is None:
-        cap = cv2.VideoCapture(0)
     if cap is not None:
         ret, frame = cap.read()
         if not ret:
@@ -99,9 +195,12 @@ def video_feed():
 @app.route('/toggle_video', methods=['POST'])
 def toggle_video():
     global video_active
+    global cap
     video_active = request.json.get('active', True)
     if video_active == False:
         release_camera()
+    else:
+        cap = cv2.VideoCapture(0)
     return jsonify({"video_active": video_active})
 
 #funciones
@@ -169,12 +268,39 @@ def detect_emotion(frame):
 
     return emotion
 
+# guardar imagen registro
+def reg_rostro(img, lista_resultados,ruta_completa):
+    data = cv2.imread(img)
+    for i in range(len(lista_resultados)):
+        x1,y1,ancho, alto = lista_resultados[i]['box']
+        x2,y2 = x1 + ancho, y1 + alto
+        pyplot.subplot(1, len(lista_resultados), i+1)
+        pyplot.axis('off')
+        cara_reg = data[y1:y2, x1:x2]
+        cara_reg = cv2.resize(cara_reg,(150,200), interpolation = cv2.INTER_CUBIC) #Guardamos la imagen con un tamaño de 150x200
+        if os.path.exists(ruta_completa):
+            os.remove(ruta_completa)
+        cv2.imwrite(ruta_completa,cara_reg)
+        # pyplot.imshow(data[y1:y2, x1:x2])
+    # pyplot.show()
+    pyplot.close()
 
+#-------------------------- Funcion para comparar los rostros --------------------------------------------
+def comparar_imgs(img1,img2):
+    orb = cv2.ORB_create()  #Creamos el objeto de comparacion
+    kpa, descr_a = orb.detectAndCompute(img1, None)  #Creamos descriptor 1 y extraemos puntos claves
+    kpb, descr_b = orb.detectAndCompute(img2, None)  #Creamos descriptor 2 y extraemos puntos claves
+    comp = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck = True) #Creamos comparador de fuerza
+    matches = comp.match(descr_a, descr_b)  #Aplicamos el comparador a los descriptores
+    regiones_similares = [i for i in matches if i.distance < 70] #Extraemos las regiones similares en base a los puntos claves
+    if len(matches) == 0:
+        return 0
+    return len(regiones_similares)/len(matches)  #Exportamos el porcentaje de similitud
+
+# generar frames
 def generate_frames():
     global cap
-    if video_active and cap is None:
-        cap = cv2.VideoCapture(0)
-    while video_active:
+    while video_active and cap:
         ret, frame = cap.read()
         if not ret:
             break

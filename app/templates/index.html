@@ -29,6 +29,7 @@
     background-color: rgb(51, 51, 53);
   }
   .cont2 {
+    position: relative;
     background-color: rgb(21, 92, 114);
   }
 
@@ -48,6 +49,22 @@
     padding: 10px;
     font-weight: bold;
     font-size: 1.3em;
+  }
+
+  .txtEmocionActual {
+    font-weight: bold;
+  }
+  .txtDedosActual {
+    font-weight: bold;
+  }
+
+  #contenedorDeteccionEmocionesDedos {
+    color: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.66);
   }
 </style>
 {% endblock %} {% block content %}
@@ -92,6 +109,10 @@
           <div class="col-md-4 text-center cont2">
             <span class="titulo_seccion">Cámara</span>
             <img id="video" src="" style="width: 100%; height: auto" />
+            <div id="contenedorDeteccionEmocionesDedos">
+              <div id="txtEmocionActual"></div>
+              <div id="txtDedosActual"></div>
+            </div>
             <div class="row">
               <div class="col-12">
                 <span id="txtInfoUsuarioPasos"></span>
@@ -133,6 +154,8 @@
   const txtNroPaso = document.getElementById("txtNroPaso");
   let intervalTiempoRestante = null;
   const nroDedos = document.getElementById("nroDedos");
+  const txtEmocionActual = document.getElementById("txtEmocionActual");
+  const txtDedosActual = document.getElementById("txtDedosActual");
   let emocion_detectar = "";
   let dedos_detectar = 0;
   let emocion_actual = null;
@@ -298,6 +321,10 @@
       console.log("Dedos Actual:" + dedos_actual);
       console.log("Dedos detectar:" + dedos_detectar);
       console.log("---------------------------");
+      txtEmocionActual.innerText = `${emocion_actual}`;
+      txtDedosActual.innerText = `${
+        dedos_actual != "_" ? dedos_actual : 0
+      } dedo(s)`;
       if (
         emocion_actual == emocion_detectar &&
         dedos_actual == dedos_detectar
@@ -305,7 +332,9 @@
         nroPaso++;
         if (nroPaso > 2) {
           // sesion correcta
-          terminaPrueba();
+          setTimeout(() => {
+            terminaPrueba();
+          }, 1500);
         }
         txtNroPaso.innerText = nroPaso;
         generaPaso();

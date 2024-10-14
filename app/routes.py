@@ -18,6 +18,7 @@ from app.models.usuario import Usuario
 from math import acos, degrees
 
 # Inicializar la captura de video y MediaPipe
+num_camara = 0
 cap = None
 mpDibujo = mp.solutions.drawing_utils
 ConfDibu = mpDibujo.DrawingSpec(thickness=1, circle_radius=1)
@@ -211,7 +212,7 @@ def toggle_video():
     if video_active == False:
         release_camera()
     else:
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(num_camara)
     return jsonify({"video_active": video_active})
 
 #funciones

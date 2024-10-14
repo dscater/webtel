@@ -19,11 +19,41 @@
   #txtUsuario {
     font-weight: bold;
   }
+
+  .card-dark .card-body {
+    background-color: rgb(46, 42, 42);
+    color: white;
+  }
+
+  .cont1 {
+    background-color: rgb(51, 51, 53);
+  }
+  .cont2 {
+    background-color: rgb(21, 92, 114);
+  }
+
+  #txtTiempoRestante {
+    background-color: black;
+    padding: 20px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1.2em;
+    width: 70px;
+    height: 70px;
+    margin: auto;
+  }
+
+  #contenedorNroPaso {
+    background: black;
+    padding: 10px;
+    font-weight: bold;
+    font-size: 1.3em;
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="row mt-3">
   <div class="col-12">
-    <div class="card">
+    <div class="card card-dark">
       <div class="card-body">
         <div class="row">
           <div class="col-12">
@@ -51,27 +81,38 @@
               Verificando al usuario: <span id="txtUsuario"></span>
             </div>
             <img id="videoFacial" src="" style="width: 100%" height="auto" />
+            <div class="alert" id="txtVerificar"></div>
           </div>
         </div>
         <div class="row mt-4" id="contenedor_autenticacion">
-          <div class="col-md-4 text-center">
-            <span class="titulo_seccion">Tiempo restante</span>
+          <div class="col-md-4 text-center cont1">
+            <div class="titulo_seccion">Tiempo restante</div>
+            <div id="txtTiempoRestante"></div>
           </div>
-          <div class="col-md-4 text-center">
+          <div class="col-md-4 text-center cont2">
             <span class="titulo_seccion">Cámara</span>
             <img id="video" src="" style="width: 100%; height: auto" />
-            <input
-              type="text"
-              id="emotion-output"
-              class="form-control"
-              placeholder="Emoción detectada"
-              readonly
-            />
+            <div class="row">
+              <div class="col-12">
+                <span id="txtInfoUsuarioPasos"></span>
+              </div>
+            </div>
           </div>
-          <div class="col-md-4 text-center">
-            <span class="titulo_seccion"
-              >Muestre el siguiente número con la mano</span
-            >
+          <div class="col-md-4 text-center cont1">
+            <div class="contenedorNroPaso"><span id="txtNroPaso"></span>/2</div>
+            <div class="titulo_seccion">
+              Por favor realice el siguiente gesto:
+            </div>
+            <div id="txtGesto"></div>
+            <div class="titulo_seccion">
+              Muestre el siguiente número con la mano:
+            </div>
+            <div id="nroDedos"></div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-12">
+            <div class="alert" id="mensajeEmociones"></div>
           </div>
         </div>
       </div>
@@ -82,6 +123,20 @@
 %} {% block scripts %}
 <script>
   // LOGIN
+  const txtVerificar = document.getElementById("txtVerificar");
+  const txtInfoUsuarioPasos = document.getElementById("txtInfoUsuarioPasos");
+  const mensajeEmociones = document.getElementById("mensajeEmociones");
+  const txtGesto = document.getElementById("txtGesto");
+  let tiempoPrueba = 60;
+  const txtTiempoRestante = document.getElementById("txtTiempoRestante");
+  let nroPaso = 1;
+  const txtNroPaso = document.getElementById("txtNroPaso");
+  let intervalTiempoRestante = null;
+  const nroDedos = document.getElementById("nroDedos");
+  let emocion_detectar = "";
+  let dedos_detectar = 0;
+  let emocion_actual = null;
+  let dedos_actual = null;
   let login = false;
   let usuario_logeado = null;
   let usuarioLogin = document.getElementById("usuarioLogin");
@@ -110,6 +165,7 @@
   });
 
   btnLogin.addEventListener("click", () => {
+    mensajeEmociones.closest(".row").classList.add("oculto");
     fetch("/verifica_usuario", {
       method: "POST",
       headers: {
@@ -155,19 +211,106 @@
     if (login) {
       document.getElementById("videoFacial").src =
         "{{ url_for('video_feed') }}"; // Reactivar facial
-      interval_respuestas_facial = setInterval(()=>{
-        console.log("Reconociendo...")
+      interval_respuestas_facial = setInterval(() => {
+        txtVerificar.innerText = "Reconociendo...";
         enviaRostroLogin();
       }, 4000);
     } else {
-      document.getElementById("video").src = "{{ url_for('video_feed') }}"; // Reactivar emociones
-      interval_respuestas_emociones = setInterval(async () => {
-        const response = await fetch("/emotion");
-        const data = await response.json();
-        document.getElementById("emotion-output").value =
-          data.emotion || "Error al detectar emoción";
-      }, 1000);
+      iniciaReconocimientoEmociones();
     }
+  };
+
+  // generar pasos
+  const generaPaso = () => {
+    txtNroPaso.innerText = nroPaso;
+    const emociones = ["Enojado", "Feliz", "Asombrado", "Triste"];
+    let anterior_emocion = emocion_detectar;
+    let anterior_dedos = dedos_detectar;
+    do {
+      // Generar una emoción aleatoria
+      emocion_detectar =
+        emociones[Math.floor(Math.random() * emociones.length)];
+      // Generar un número aleatorio del 1 al 5
+      dedos_detectar = Math.floor(Math.random() * 5) + 1;
+    } while (
+      anterior_emocion === emocion_detectar ||
+      anterior_dedos === dedos_detectar
+    );
+    txtGesto.innerHTML = emocion_detectar;
+    nroDedos.innerHTML = dedos_detectar;
+  };
+
+  // tiempo de prueba reconocimiento
+  const iniciaConteoTiempo = () => {
+    txtTiempoRestante.innerText = tiempoPrueba;
+    intervalTiempoRestante = setInterval(() => {
+      tiempoPrueba--;
+      if (tiempoPrueba < 1) {
+        txtTiempoRestante.innerText = tiempoPrueba;
+        // terminar la prueba
+        terminaPrueba();
+      }
+      txtTiempoRestante.innerText = tiempoPrueba;
+    }, 1000);
+  };
+
+  const terminaPrueba = () => {
+    mensajeEmociones.closest(".row").classList.remove("oculto");
+    clearInterval(intervalTiempoRestante);
+    clearInterval(interval_respuestas_emociones);
+    clearInterval(interval_respuestas_facial);
+    document.getElementById("videoFacial").src = ""; // Desactivar imagen
+    document.getElementById("video").src = ""; // Desactivar imagen
+    contenedor_autenticacion.classList.add("oculto");
+    mensajeEmociones.classList.remove("alert-danger");
+    mensajeEmociones.classList.remove("alert-success");
+    if (nroPaso < 3) {
+      mensajeEmociones.classList.add("alert-danger");
+      usuario_logeado = null;
+      login = false;
+      mensajeEmociones.innerText = "Fallo la autenticación intente nuevamente";
+    } else {
+      mensajeEmociones.classList.add("alert-success");
+      mensajeEmociones.innerText = "Usuario verificado correctamente";
+    }
+    nroPaso = 1;
+    dedos_detectar = 0;
+    emocion_detectar = "";
+    tiempoPrueba = 60;
+  };
+
+  const iniciaReconocimientoEmociones = () => {
+    generaPaso();
+    iniciaConteoTiempo();
+    txtInfoUsuarioPasos.innerHTML = `Usuario: <b>${usuario_logeado.usuario}</b>`;
+    contenedorLoginFacial.classList.add("oculto");
+    document.getElementById("videoFacial").src = ""; // Desactivar imagen
+    contenedor_autenticacion.classList.remove("oculto");
+    document.getElementById("video").src = "{{ url_for('video_feed') }}"; // Reactivar emociones
+    interval_respuestas_emociones = setInterval(async () => {
+      const response = await fetch("/emotion");
+      const data = await response.json();
+      emocion_actual = data.emotion;
+      dedos_actual = data.dedos;
+      console.log("Emocion Actual:" + emocion_actual);
+      console.log("Emocion detectar:" + emocion_detectar);
+
+      console.log("Dedos Actual:" + dedos_actual);
+      console.log("Dedos detectar:" + dedos_detectar);
+      console.log("---------------------------");
+      if (
+        emocion_actual == emocion_detectar &&
+        dedos_actual == dedos_detectar
+      ) {
+        nroPaso++;
+        if (nroPaso > 2) {
+          // sesion correcta
+          terminaPrueba();
+        }
+        txtNroPaso.innerText = nroPaso;
+        generaPaso();
+      }
+    }, 1000);
   };
 
   const enviaRostroLogin = async () => {
@@ -176,9 +319,18 @@
         `/login_facial?usuario=${encodeURIComponent(usuario_logeado.usuario)}`
       );
       const data = await response.json();
-      console.log(data);
+      txtVerificar.classList.remove("alert-success");
+      txtVerificar.classList.remove("alert-danger");
       if (data.existe) {
+        txtVerificar.classList.add("alert-success");
+        txtVerificar.innerText = "Verificación correcta";
+        clearInterval(interval_respuestas_facial);
+        setTimeout(() => {
+          iniciaReconocimientoEmociones();
+        }, 1000);
       } else {
+        txtVerificar.classList.add("alert-danger");
+        txtVerificar.innerText = "Usuario invalido";
       }
     } catch (error) {
       console.error("Error en el envío de rostro:", error);
@@ -256,6 +408,7 @@
 
   // Enviar la captura y el usuario al servidor
   registerButton.addEventListener("click", () => {
+    registerButton.disabled = true;
     const usuario = document.getElementById("usuario").value;
     const imageData = canvas_registro.toDataURL("image/jpeg", 0.9);
     if (valida_img && usuario.trim() != "") {
@@ -284,11 +437,14 @@
             }, 800);
             // Manejar la respuesta del servidor
           }
+          registerButton.disabled = false;
         })
         .catch((error) => {
+          registerButton.disabled = false;
           console.error("Error:", error);
         });
     } else {
+      registerButton.disabled = false;
       error_registro.parentNode.classList.remove("oculto");
       error_registro.innerHTML = "Debes ingresar el usuario y tomar la captura";
     }
@@ -323,6 +479,7 @@
             initCamaraRegistro();
           }
         } else {
+          txtVerificar.innerText = "Espere...";
           iniciaDeteccion();
         }
       })

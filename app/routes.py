@@ -15,7 +15,7 @@ import mediapipe as mp
 import math
 from app import db
 from app.models.usuario import Usuario
-
+from math import acos, degrees
 
 # Inicializar la captura de video y MediaPipe
 cap = None
@@ -24,6 +24,17 @@ ConfDibu = mpDibujo.DrawingSpec(thickness=1, circle_radius=1)
 mpMallaFacial = mp.solutions.face_mesh
 MallaFacial = mpMallaFacial.FaceMesh(max_num_faces=1)
 video_active = False
+
+#conteo de dedos
+# Pulgar
+thumb_points = [1, 2, 4]
+# Índice, medio, anular y meñique
+palm_points = [0, 1, 2, 5, 9, 13, 17]
+fingertips_points = [8, 12, 16, 20]
+finger_base_points =[6, 10, 14, 18]
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_hands = mp.solutions.hands
 
 @app.route('/')
 def home():
@@ -180,7 +191,7 @@ def emotion_detection():
             return jsonify({"error": "No se pudo capturar el frame"}), 500
 
         emotion = detect_emotion(frame)
-        return jsonify({"emotion": emotion})
+        return jsonify({"emotion": emotion[0],"dedos":emotion[1]})
     else:
         return jsonify({"error": "Captura no inicializada"})
 
@@ -207,6 +218,70 @@ def toggle_video():
 # Función para detectar emociones
 def detect_emotion(frame):
     frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    #conteo de dedos
+    
+    with mp_hands.Hands(model_complexity=1,max_num_hands=1,min_detection_confidence=0.5,min_tracking_confidence=0.5) as hands:
+        height, width, _ = frame.shape
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(frame_rgb)
+        fingers_counter = "_"
+        thickness = [2, 2, 2, 2, 2]
+        if results.multi_hand_landmarks:
+            coordinates_thumb = []
+            coordinates_palm = []
+            coordinates_ft = []
+            coordinates_fb = []
+            for hand_landmarks in results.multi_hand_landmarks:
+                for index in thumb_points:
+                        x = int(hand_landmarks.landmark[index].x * width)
+                        y = int(hand_landmarks.landmark[index].y * height)
+                        coordinates_thumb.append([x, y])
+                
+                for index in palm_points:
+                        x = int(hand_landmarks.landmark[index].x * width)
+                        y = int(hand_landmarks.landmark[index].y * height)
+                        coordinates_palm.append([x, y])
+                
+                for index in fingertips_points:
+                        x = int(hand_landmarks.landmark[index].x * width)
+                        y = int(hand_landmarks.landmark[index].y * height)
+                        coordinates_ft.append([x, y])
+                
+                for index in finger_base_points:
+                        x = int(hand_landmarks.landmark[index].x * width)
+                        y = int(hand_landmarks.landmark[index].y * height)
+                        coordinates_fb.append([x, y])
+                ##########################
+                # Pulgar
+                p1 = np.array(coordinates_thumb[0])
+                p2 = np.array(coordinates_thumb[1])
+                p3 = np.array(coordinates_thumb[2])
+                l1 = np.linalg.norm(p2 - p3)
+                l2 = np.linalg.norm(p1 - p3)
+                l3 = np.linalg.norm(p1 - p2)
+                # Calcular el ángulo
+                angle = degrees(acos((l1**2 + l3**2 - l2**2) / (2 * l1 * l3)))
+                thumb_finger = np.array(False)
+                if angle > 150:
+                        thumb_finger = np.array(True)
+                
+                ################################
+                # Índice, medio, anular y meñique
+                nx, ny = palm_centroid(coordinates_palm)
+                cv2.circle(frame, (nx, ny), 3, (0, 255, 0), 2)
+                coordinates_centroid = np.array([nx, ny])
+                coordinates_ft = np.array(coordinates_ft)
+                coordinates_fb = np.array(coordinates_fb)
+                # Distancias
+                d_centrid_ft = np.linalg.norm(coordinates_centroid - coordinates_ft, axis=1)
+                d_centrid_fb = np.linalg.norm(coordinates_centroid - coordinates_fb, axis=1)
+                dif = d_centrid_ft - d_centrid_fb
+                fingers = dif > 0
+                fingers = np.append(thumb_finger, fingers)
+                fingers_counter = str(np.count_nonzero(fingers==True))
+    print("DEDOS CONTADOS: " + fingers_counter)    
+    #reconocimiento de gestos
     resultados = MallaFacial.process(frameRGB)
     emotion = "Neutro"  # Valor por defecto
     if resultados.multi_face_landmarks:
@@ -251,10 +326,10 @@ def detect_emotion(frame):
                     print(longitud4)
 
                     # Clasificación
-                    if longitud1 < 22 and longitud2 < 22 and 70 < longitud3 < 80 and longitud4 < 5:
+                    if longitud1 < 22 and longitud2 < 22 and 60 < longitud3 < 80 and longitud4 < 5:
                         print("enojado")
                         emotion = "Enojado"
-                    elif 20 < longitud1 < 30 and 20 < longitud2 < 30 and longitud3 > 80 and 10 < longitud4 < 20:
+                    elif 20 < longitud1 < 30 and 20 < longitud2 < 30 and longitud3 > 77 and 10 < longitud4 < 20:
                         emotion = "Feliz"
                         print("feliz")
                     elif longitud1 > 23 and longitud2 > 22 and longitud3 < 90 and longitud4 > 30:
@@ -266,7 +341,7 @@ def detect_emotion(frame):
                     print("neutro")
                     
 
-    return emotion
+    return [emotion,fingers_counter]
 
 # guardar imagen registro
 def reg_rostro(img, lista_resultados,ruta_completa):
@@ -308,7 +383,12 @@ def generate_frames():
         frame = buffer.tobytes()
         yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
     release_camera()
-        
+    
+def palm_centroid(coordinates_list):
+    coordinates = np.array(coordinates_list)
+    centroid = np.mean(coordinates, axis=0)
+    centroid = int(centroid[0]), int(centroid[1])
+    return centroid
 #libera la camara        
 def release_camera():
     global cap

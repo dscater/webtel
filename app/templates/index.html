@@ -66,6 +66,15 @@
     padding: 5px;
     background-color: rgba(0, 0, 0, 0.66);
   }
+
+  .contenedorPasosInfo .col-md-4 {
+    margin-bottom: 10px;
+  }
+
+  .contenedorPasosInfo .col-md-4 .info_paso {
+    padding: 10px;
+    background-color: gray;
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="row mt-3">
@@ -80,7 +89,7 @@
           </div>
           <div class="col-12 text-center">
             <button class="btn btn-primary" id="iniciaAuthenticacion">
-              Iniciar Autenticación
+              Iniciar Autenticación <i class="fa fa-user"></i>
             </button>
             <a
               href="#"
@@ -88,10 +97,11 @@
               data-bs-toggle="modal"
               data-bs-target="#modal_registro"
               class="btn btn-outline-primary"
-              >Registrarse</a
-            >
+              >Registrarse <i class="fa fa-edit"></i
+            ></a>
           </div>
         </div>
+
         <div class="row mt-4" id="contenedorLoginFacial">
           <div class="col-md-4 mx-auto">
             <div class="verificandoUsuario">
@@ -102,6 +112,27 @@
           </div>
         </div>
         <div class="row mt-4" id="contenedor_autenticacion">
+          <div class="col-12">
+            <div class="row contenedorPasosInfo">
+              <div class="col-md-4 text-center">
+                <div class="info_paso" id="pasoFacial">
+                  Reconocimiento facial <i class="fa fa-circle"></i>
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <div class="info_paso" id="pasoGesto">
+                  Gesto <span id="txtGestoInfo"></span>
+                  <i class="fa fa-circle"></i>
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <div class="info_paso" id="pasoDedos">
+                  Número <span id="txtDedosInfo"></span> con la mano
+                  <i class="fa fa-circle"></i>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="col-md-4 text-center cont1">
             <div class="titulo_seccion">Tiempo restante</div>
             <div id="txtTiempoRestante"></div>
@@ -120,7 +151,9 @@
             </div>
           </div>
           <div class="col-md-4 text-center cont1">
-            <div class="contenedorNroPaso"><span id="txtNroPaso"></span>/2</div>
+            <div class="contenedorNroPaso oculto">
+              <span id="txtNroPaso"></span>/2
+            </div>
             <div class="titulo_seccion">
               Por favor realice el siguiente gesto:
             </div>
@@ -156,6 +189,14 @@
   const nroDedos = document.getElementById("nroDedos");
   const txtEmocionActual = document.getElementById("txtEmocionActual");
   const txtDedosActual = document.getElementById("txtDedosActual");
+  const pasoFacial = document.getElementById("pasoFacial");
+  const pasoGesto = document.getElementById("pasoGesto");
+  const pasoDedos = document.getElementById("pasoDedos");
+  const txtGestoInfo = document.getElementById("txtGestoInfo");
+  const txtDedosInfo = document.getElementById("txtDedosInfo");
+  let num_errores = 0;
+  let sw_emocion = false;
+  let sw_dedos = false;
   let emocion_detectar = "";
   let dedos_detectar = 0;
   let emocion_actual = null;
@@ -244,23 +285,26 @@
   };
 
   // generar pasos
-  const generaPaso = () => {
-    txtNroPaso.innerText = nroPaso;
+  const generaNumDedos = () => {
+    let anterior_dedos = dedos_detectar;
+    do {
+      // Generar un número aleatorio del 1 al 5
+      dedos_detectar = Math.floor(Math.random() * 5) + 1;
+    } while (anterior_dedos === dedos_detectar);
+    nroDedos.innerHTML = dedos_detectar;
+    txtDedosInfo.innerText = dedos_detectar;
+  };
+
+  const generaEmocion = () => {
     const emociones = ["Enojado", "Feliz", "Asombrado", "Triste"];
     let anterior_emocion = emocion_detectar;
-    let anterior_dedos = dedos_detectar;
     do {
       // Generar una emoción aleatoria
       emocion_detectar =
         emociones[Math.floor(Math.random() * emociones.length)];
-      // Generar un número aleatorio del 1 al 5
-      dedos_detectar = Math.floor(Math.random() * 5) + 1;
-    } while (
-      anterior_emocion === emocion_detectar ||
-      anterior_dedos === dedos_detectar
-    );
+    } while (anterior_emocion === emocion_detectar);
+    txtGestoInfo.innerText = emocion_detectar;
     txtGesto.innerHTML = emocion_detectar;
-    nroDedos.innerHTML = dedos_detectar;
   };
 
   // tiempo de prueba reconocimiento
@@ -287,23 +331,27 @@
     contenedor_autenticacion.classList.add("oculto");
     mensajeEmociones.classList.remove("alert-danger");
     mensajeEmociones.classList.remove("alert-success");
-    if (nroPaso < 3) {
+    if (sw_emocion && sw_dedos) {
+      mensajeEmociones.classList.add("alert-success");
+      mensajeEmociones.innerText = "Usuario verificado correctamente";
+    } else {
       mensajeEmociones.classList.add("alert-danger");
       usuario_logeado = null;
       login = false;
       mensajeEmociones.innerText = "Fallo la autenticación intente nuevamente";
-    } else {
-      mensajeEmociones.classList.add("alert-success");
-      mensajeEmociones.innerText = "Usuario verificado correctamente";
     }
     nroPaso = 1;
     dedos_detectar = 0;
     emocion_detectar = "";
     tiempoPrueba = 60;
+    num_errores = 0;
+    sw_emocion = false;
+    sw_dedos = false;
   };
 
   const iniciaReconocimientoEmociones = () => {
-    generaPaso();
+    generaEmocion();
+    generaNumDedos();
     iniciaConteoTiempo();
     txtInfoUsuarioPasos.innerHTML = `Usuario: <b>${usuario_logeado.usuario}</b>`;
     contenedorLoginFacial.classList.add("oculto");
@@ -325,21 +373,62 @@
       txtDedosActual.innerText = `${
         dedos_actual != "_" ? dedos_actual : 0
       } dedo(s)`;
-      if (
-        emocion_actual == emocion_detectar &&
-        dedos_actual == dedos_detectar
-      ) {
-        nroPaso++;
-        if (nroPaso > 2) {
-          // sesion correcta
-          setTimeout(() => {
-            terminaPrueba();
-          }, 1500);
+
+      // gesto/emocion
+      if (!sw_emocion && emocion_actual != "Neutro") {
+        pasoGesto.classList.remove("bg-success");
+        pasoGesto.classList.remove("bg-danger");
+        let icon = pasoGesto.querySelector("i");
+        icon.classList.add("fa-circle");
+        icon.classList.remove("fa-check");
+        icon.classList.remove("fa-times");
+        if (emocion_actual == emocion_detectar) {
+          sw_emocion = true;
+          // marcar correcto
+          pasoGesto.classList.add("bg-success");
+          icon.classList.remove("fa-circle");
+          icon.classList.add("fa-check");
+        } else {
+          generaEmocion();
+          num_errores++;
+          // marcar error
+          pasoGesto.classList.add("bg-danger");
+          icon.classList.remove("fa-circle");
+          icon.classList.add("fa-times");
         }
-        txtNroPaso.innerText = nroPaso;
-        generaPaso();
       }
-    }, 1000);
+
+      // dedos
+      if (!sw_dedos && dedos_actual != "_" && dedos_actual != 0) {
+        pasoDedos.classList.remove("bg-success");
+        pasoDedos.classList.remove("bg-danger");
+        icon = pasoDedos.querySelector("i");
+        icon.classList.add("fa-circle");
+        icon.classList.remove("fa-check");
+        icon.classList.remove("fa-times");
+        if (dedos_actual == dedos_detectar) {
+          sw_dedos = true;
+          // marcar correcto
+          pasoDedos.classList.add("bg-success");
+          icon.classList.remove("fa-circle");
+          icon.classList.add("fa-check");
+        } else {
+          generaNumDedos();
+          num_errores++;
+          // marcar error
+          pasoDedos.classList.add("bg-danger");
+          icon.classList.remove("fa-circle");
+          icon.classList.add("fa-times");
+        }
+      }
+
+      if ((sw_emocion && sw_dedos) || num_errores > 1) {
+        // sesion correcta
+        setTimeout(() => {
+          terminaPrueba();
+        }, 1500);
+      }
+    }, 2000);
   };
 
   const enviaRostroLogin = async () => {
@@ -354,12 +443,20 @@
         txtVerificar.classList.add("alert-success");
         txtVerificar.innerText = "Verificación correcta";
         clearInterval(interval_respuestas_facial);
+
+        // marcar paso como correcto
+        pasoFacial.classList.add("bg-success");
+        let icon = pasoFacial.querySelector("i");
+        icon.classList.remove("fa-circle");
+        icon.classList.add("fa-check");
+
         setTimeout(() => {
           iniciaReconocimientoEmociones();
         }, 1000);
       } else {
         txtVerificar.classList.add("alert-danger");
         txtVerificar.innerText = "Usuario invalido";
+        terminaPrueba();
       }
     } catch (error) {
       console.error("Error en el envío de rostro:", error);

@@ -143,6 +143,7 @@
             <div id="contenedorDeteccionEmocionesDedos">
               <div id="txtEmocionActual"></div>
               <div id="txtDedosActual"></div>
+              <button id="btnPlay"><i class="fa fa-pause"></i></button>
             </div>
             <div class="row">
               <div class="col-12">
@@ -151,8 +152,8 @@
             </div>
           </div>
           <div class="col-md-4 text-center cont1">
-            <div class="contenedorNroPaso oculto">
-              <span id="txtNroPaso"></span>/2
+            <div class="contenedorNroPaso">
+              Intentos: <span id="txtNroPaso"></span>/2
             </div>
             <div class="titulo_seccion">
               Por favor realice el siguiente gesto:
@@ -194,6 +195,9 @@
   const pasoDedos = document.getElementById("pasoDedos");
   const txtGestoInfo = document.getElementById("txtGestoInfo");
   const txtDedosInfo = document.getElementById("txtDedosInfo");
+  const btnPlay = document.getElementById("btnPlay");
+  let sw_play = true;
+  asignaIconoBoton();
   let num_errores = 0;
   let sw_emocion = false;
   let sw_dedos = false;
@@ -228,8 +232,33 @@
     modal_login.show();
   });
 
+  btnPlay.addEventListener("click", () => {
+    console.log(sw_play);
+    if (sw_play) {
+      clearInterval(interval_respuestas_emociones);
+    } else {
+      continuaReconocimiento();
+    }
+    sw_play = !sw_play;
+    asignaIconoBoton();
+  });
+
+  function asignaIconoBoton() {
+    const icon = btnPlay.querySelector("i");
+    icon.classList.remove("fa-play");
+    icon.classList.remove("fa-pause");
+    if (sw_play) {
+      icon.classList.add("fa-pause");
+    } else {
+      icon.classList.add("fa-play");
+    }
+  }
+
   btnLogin.addEventListener("click", () => {
     mensajeEmociones.closest(".row").classList.add("oculto");
+    // clases mensaje enviando
+    txtVerificar.classList.remove("alert-success");
+    txtVerificar.classList.remove("alert-danger");
     fetch("/verifica_usuario", {
       method: "POST",
       headers: {
@@ -333,7 +362,7 @@
     mensajeEmociones.classList.remove("alert-success");
     if (sw_emocion && sw_dedos) {
       mensajeEmociones.classList.add("alert-success");
-      mensajeEmociones.innerText = "Usuario verificado correctamente";
+      mensajeEmociones.innerText = "ACCESO CORRECTO";
     } else {
       mensajeEmociones.classList.add("alert-danger");
       usuario_logeado = null;
@@ -347,6 +376,23 @@
     num_errores = 0;
     sw_emocion = false;
     sw_dedos = false;
+
+    // clases
+    let icon = null;
+    txtGesto.classList.remove("text-success");
+    pasoGesto.classList.remove("bg-success");
+    pasoGesto.classList.remove("bg-danger");
+    icon = pasoGesto.querySelector("i");
+    icon.classList.add("fa-circle");
+    icon.classList.remove("fa-check");
+    icon.classList.remove("fa-times");
+    nroDedos.classList.remove("text-success");
+    pasoDedos.classList.remove("bg-success");
+    pasoDedos.classList.remove("bg-danger");
+    icon = pasoDedos.querySelector("i");
+    icon.classList.add("fa-circle");
+    icon.classList.remove("fa-check");
+    icon.classList.remove("fa-times");
   };
 
   const iniciaReconocimientoEmociones = () => {
@@ -358,77 +404,96 @@
     document.getElementById("videoFacial").src = ""; // Desactivar imagen
     contenedor_autenticacion.classList.remove("oculto");
     document.getElementById("video").src = "{{ url_for('video_feed') }}"; // Reactivar emociones
-    interval_respuestas_emociones = setInterval(async () => {
-      const response = await fetch("/emotion");
-      const data = await response.json();
-      emocion_actual = data.emotion;
-      dedos_actual = data.dedos;
-      console.log("Emocion Actual:" + emocion_actual);
-      console.log("Emocion detectar:" + emocion_detectar);
+    interval_respuestas_emociones = setInterval(
+      enviaReconocimientoEmociones,
+      2000
+    );
+  };
 
-      console.log("Dedos Actual:" + dedos_actual);
-      console.log("Dedos detectar:" + dedos_detectar);
-      console.log("---------------------------");
-      txtEmocionActual.innerText = `${emocion_actual}`;
-      txtDedosActual.innerText = `${
-        dedos_actual != "_" ? dedos_actual : 0
-      } dedo(s)`;
+  const continuaReconocimiento = () => {
+    interval_respuestas_emociones = setInterval(
+      enviaReconocimientoEmociones,
+      2000
+    );
+  };
 
-      // gesto/emocion
-      if (!sw_emocion && emocion_actual != "Neutro") {
-        pasoGesto.classList.remove("bg-success");
-        pasoGesto.classList.remove("bg-danger");
-        let icon = pasoGesto.querySelector("i");
-        icon.classList.add("fa-circle");
-        icon.classList.remove("fa-check");
-        icon.classList.remove("fa-times");
-        if (emocion_actual == emocion_detectar) {
-          sw_emocion = true;
-          // marcar correcto
-          pasoGesto.classList.add("bg-success");
-          icon.classList.remove("fa-circle");
-          icon.classList.add("fa-check");
-        } else {
-          generaEmocion();
-          num_errores++;
-          // marcar error
-          pasoGesto.classList.add("bg-danger");
-          icon.classList.remove("fa-circle");
-          icon.classList.add("fa-times");
-        }
+  const enviaReconocimientoEmociones = async () => {
+    const response = await fetch("/emotion");
+    const data = await response.json();
+    sw_play = true;
+    emocion_actual = data.emotion;
+    dedos_actual = data.dedos;
+    console.log("Emocion Actual:" + emocion_actual);
+    console.log("Emocion detectar:" + emocion_detectar);
+
+    console.log("Dedos Actual:" + dedos_actual);
+    console.log("Dedos detectar:" + dedos_detectar);
+    console.log("---------------------------");
+    txtEmocionActual.innerText = `${emocion_actual}`;
+    txtDedosActual.innerText = `${
+      dedos_actual != "_" ? dedos_actual : 0
+    } dedo(s)`;
+
+    // gesto/emocion
+    let icon = null;
+    if (!sw_emocion && emocion_actual != "Neutro") {
+      txtGesto.classList.remove("text-success");
+      pasoGesto.classList.remove("bg-success");
+      pasoGesto.classList.remove("bg-danger");
+      icon = pasoGesto.querySelector("i");
+      icon.classList.add("fa-circle");
+      icon.classList.remove("fa-check");
+      icon.classList.remove("fa-times");
+      if (emocion_actual == emocion_detectar) {
+        sw_emocion = true;
+        // marcar correcto
+        txtGesto.classList.add("text-success");
+        pasoGesto.classList.add("bg-success");
+        icon.classList.remove("fa-circle");
+        icon.classList.add("fa-check");
+      } else {
+        generaEmocion();
+        num_errores++;
+        // marcar error
+        pasoGesto.classList.add("bg-danger");
+        icon.classList.remove("fa-circle");
+        icon.classList.add("fa-times");
       }
+    }
 
-      // dedos
-      if (!sw_dedos && dedos_actual != "_" && dedos_actual != 0) {
-        pasoDedos.classList.remove("bg-success");
-        pasoDedos.classList.remove("bg-danger");
-        icon = pasoDedos.querySelector("i");
-        icon.classList.add("fa-circle");
-        icon.classList.remove("fa-check");
-        icon.classList.remove("fa-times");
-        if (dedos_actual == dedos_detectar) {
-          sw_dedos = true;
-          // marcar correcto
-          pasoDedos.classList.add("bg-success");
-          icon.classList.remove("fa-circle");
-          icon.classList.add("fa-check");
-        } else {
-          generaNumDedos();
-          num_errores++;
-          // marcar error
-          pasoDedos.classList.add("bg-danger");
-          icon.classList.remove("fa-circle");
-          icon.classList.add("fa-times");
-        }
+    // dedos
+    if (!sw_dedos && dedos_actual != "_" && dedos_actual != 0) {
+      nroDedos.classList.remove("text-success");
+      pasoDedos.classList.remove("bg-success");
+      pasoDedos.classList.remove("bg-danger");
+      icon = pasoDedos.querySelector("i");
+      icon.classList.add("fa-circle");
+      icon.classList.remove("fa-check");
+      icon.classList.remove("fa-times");
+      if (dedos_actual == dedos_detectar) {
+        nroDedos.classList.add("text-success");
+        sw_dedos = true;
+        // marcar correcto
+        pasoDedos.classList.add("bg-success");
+        icon.classList.remove("fa-circle");
+        icon.classList.add("fa-check");
+      } else {
+        generaNumDedos();
+        num_errores++;
+        // marcar error
+        pasoDedos.classList.add("bg-danger");
+        icon.classList.remove("fa-circle");
+        icon.classList.add("fa-times");
       }
+    }
 
-      if ((sw_emocion && sw_dedos) || num_errores > 1) {
-        // sesion correcta
-        setTimeout(() => {
-          terminaPrueba();
-        }, 1500);
-      }
-    }, 2000);
+    txtNroPaso.innerText = "" + (num_errores < 3 ? num_errores + 1 : 2);
+    if ((sw_emocion && sw_dedos) || num_errores > 1) {
+      // sesion correcta
+      setTimeout(() => {
+        terminaPrueba();
+      }, 1500);
+    }
   };
 
   const enviaRostroLogin = async () => {
@@ -455,7 +520,7 @@
         }, 1000);
       } else {
         txtVerificar.classList.add("alert-danger");
-        txtVerificar.innerText = "Usuario invalido";
+        txtVerificar.innerText = "Usuario no reconocido";
         terminaPrueba();
       }
     } catch (error) {

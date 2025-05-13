@@ -1,0 +1,214 @@
+{% extends 'layouts/app.html' %} {% block css %}
+<style></style>
+{% endblock %} {% block content %}
+<div class="row mt-3">
+  <div class="col-12">{% include 'parcials/navbar.html' %}</div>
+</div>
+<div class="container">
+  <div class="row">
+    <div class="col-12 p-0">
+      <div class="card rounded-0">
+        <div class="card-body rounded-0">
+          <h2>Activación de servicios</h2>
+          <div class="row">
+            <div class="col-12">
+              <table class="table">
+                <tbody>
+                  <tr>
+                    <td>
+                      <strong
+                        >Servicio de Streaming de Películas y Series - CinePlus
+                        HD</strong
+                      >
+                      <ul>
+                        <li>
+                          Descripción: Acceso ilimitado a una amplía selección
+                          de peliculas y series en alta definición, incluyendo
+                          estrenos y clásicos.
+                        </li>
+                        <li>Precio Mensual: $12</li>
+                      </ul>
+                    </td>
+                    <td>
+                      <input
+                        class="inputCheckBoxs"
+                        type="checkbox"
+                        name=""
+                        id=""
+                        checked
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong
+                        >Suscripción de Juegos en la Nube - CloudGames
+                        Pro</strong
+                      >
+                      <ul>
+                        <li>
+                          Descripción: Acceso ilimitado a una biblioteca de
+                          videjuegos de alta calidad, sin necesidad de consola o
+                          hardware especializado.
+                        </li>
+                        <li>Precio Mensual: $20</li>
+                      </ul>
+                    </td>
+                    <td>
+                      <input
+                        class="inputCheckBoxs"
+                        type="checkbox"
+                        name=""
+                        id=""
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong
+                        >Servicio de Streaming de Música - SoundPlus</strong
+                      >
+                      <ul>
+                        <li>
+                          Descripción: Acceso ilimitado a una biblioteca de más de 50 millones de canciones y playlists personalizados.
+                        </li>
+                        <li>Precio Mensual: $8</li>
+                      </ul>
+                    </td>
+                    <td>
+                      <input
+                        class="inputCheckBoxs"
+                        type="checkbox"
+                        name=""
+                        id=""
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong
+                        >Plataforma de eBooks y AudioLibros - LibrosGo</strong
+                      >
+                      <ul>
+                        <li>
+                          Descripción: Acceso ilimitado a una vasta colección de
+                          eBooks y audiolibros en diversos géneros literarios.
+                        </li>
+                        <li>Precio Mensual: $8</li>
+                      </ul>
+                    </td>
+                    <td>
+                      <input
+                        class="inputCheckBoxs"
+                        type="checkbox"
+                        name=""
+                        id=""
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#modal_det_servicio"
+              >
+                <i class="fa fa-check"></i> Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal_det_servicio">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-12">
+            <h4 class="w-100 text-center">Detalles del servicio</h4>
+          </div>
+          <div class="col-12">
+            <strong>Nombre del Servicio:</strong>
+            <ul>
+              <li>Servicio Seleccionado: CinePlus HD</li>
+            </ul>
+          </div>
+          <div class="col-12">
+            <strong>Descripción del Servicio:</strong>
+            <ul>
+              <li>Acceso ilimitado a películas y series en HD</li>
+            </ul>
+          </div>
+          <div class="col-12">
+            <strong>Detalles de la Transacción</strong>
+            <ul>
+              <li>Tipo de Transacción: Activación</li>
+              <li>Precio Mensual: $12</li>
+              <li>
+                Condiciones: Sin permanencia mínima, hasta 3 dispositivos
+                simultáneamente
+              </li>
+            </ul>
+          </div>
+          <div class="col-12">
+            <strong>Beneficios Adicionales:</strong>
+            <ul>
+              <li>Contenido exclusivo de producciones originales.</li>
+              <li>Descarga de contenido para ver sin conexión</li>
+            </ul>
+          </div>
+          <div class="col-12">
+            <strong>Resumen Financiero:</strong>
+            <ul>
+              <li>Costo inicial: $12 (primer mes)</li>
+            </ul>
+          </div>
+          <div class="col-12">
+            <strong>Fecha de Renovación: </strong>03/01/2024
+          </div>
+          <div class="col-12">
+            <strong>Advertencias (si aplica):</strong>
+            <ul>
+              <li>
+                La activación de este servicio iniciará el cobro automático
+                mensual.
+              </li>
+              <li>
+                Puedes cancelar en cualquier momento antes de la fecha de
+                renovación
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          data-bs-dismiss="modal"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="confirmar"
+          class="btn btn-success"
+          data-bs-dismiss="modal"
+        >
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script></script>
+{% endblock %}

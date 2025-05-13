@@ -70,45 +70,12 @@ def login_facial():
             if not ret:
                 return jsonify({"error": "No se pudo capturar el frame"}), 500
 
-            # Crear la carpeta si no existe
-            image_dir = 'app/static/images/logs'
-            if not os.path.exists(image_dir):
-                os.makedirs(image_dir)
-
-            image_dir_login = 'app/static/images/logs/login'
-            if not os.path.exists(image_dir_login):
-                os.makedirs(image_dir_login)
-
-            # Guardar la foto
-            image_path_log = os.path.join(image_dir, f'{usuario_nombre}LOG.jpg')
-            image_path_login = os.path.join(image_dir_login, f'{usuario_nombre}LOG.jpg')
-
-            # Eliminar la imagen anterior si existe
-            if os.path.exists(image_path_log):
-                os.remove(image_path_log)
-
-            # Guardar la nueva imagen
-            cv2.imwrite(image_path_log, frame)
-
-            # Procesar la imagen para detectar caras
-            pixeles = cv2.imread(image_path_log)
-            detector = MTCNN()
-            caras = detector.detect_faces(pixeles)
-
-            # Registrar rostro y guardarlo en el path de login
-            reg_rostro(image_path_log, caras, image_path_login)
-
             # Comparar las imágenes
             ruta_registro = f"app/static/images/registros/{usuario_nombre}.jpg"
             ruta_login = f"app/static/images/logs/login/{usuario_nombre}LOG.jpg"
 
             if os.path.exists(ruta_registro) and os.path.exists(ruta_login):
-                rostro_reg = cv2.imread(ruta_registro, 0)
-                rostro_login = cv2.imread(ruta_login, 0)
-                # Comparar las imágenes
-                similitud = comparar_imgs(rostro_reg, rostro_login)
-                print(similitud)
-
+                similitud = verificaRostros(usuario_nombre, frame)
                 if similitud >= 0.90:
                     return jsonify({"existe": True})
                 else:
@@ -124,6 +91,46 @@ def login_facial():
 
     finally:
         pyplot.close()  # Cerrar cualquier gráfico de matplotlib que se esté utilizando
+
+def verificaRostros(usuario_nombre,frame):
+    global cap
+    # Crear la carpeta si no existe
+    image_dir = 'app/static/images/logs'
+    if not os.path.exists(image_dir):
+        os.makedirs(image_dir)
+        
+    image_dir_login = 'app/static/images/logs/login'
+    if not os.path.exists(image_dir_login):
+        os.makedirs(image_dir_login)
+
+    # Guardar la foto
+    image_path_log = os.path.join(image_dir, f'{usuario_nombre}LOG.jpg')
+    image_path_login = os.path.join(image_dir_login, f'{usuario_nombre}LOG.jpg')
+
+    # Eliminar la imagen anterior si existe
+    if os.path.exists(image_path_log):
+        os.remove(image_path_log)
+
+    # Guardar la nueva imagen
+    cv2.imwrite(image_path_log, frame)
+
+    # Procesar la imagen para detectar caras
+    pixeles = cv2.imread(image_path_log)
+    detector = MTCNN()
+    caras = detector.detect_faces(pixeles)
+
+    # Registrar rostro y guardarlo en el path de login
+    reg_rostro(image_path_log, caras, image_path_login)
+    ruta_registro = f"app/static/images/registros/{usuario_nombre}.jpg"
+    ruta_login = f"app/static/images/logs/login/{usuario_nombre}LOG.jpg"
+    rostro_reg = cv2.imread(ruta_registro, 0)
+    rostro_login = cv2.imread(ruta_login, 0)
+    # Comparar las imágenes
+    similitud = comparar_imgs(rostro_reg, rostro_login)
+    print(similitud)
+    return similitud
+
+
 
 @app.route('/registrarse')
 def about():
@@ -186,13 +193,14 @@ def registrar():
 @app.route('/emotion', methods=['GET'])
 def emotion_detection():
     global cap
+    usuario_nombre = request.args.get("usuario")
     if cap is not None:
         ret, frame = cap.read()
         if not ret:
             return jsonify({"error": "No se pudo capturar el frame"}), 500
 
-        emotion = detect_emotion(frame)
-        return jsonify({"emotion": emotion[0],"dedos":emotion[1]})
+        emotion = detect_emotion(frame,usuario_nombre)
+        return jsonify({"emotion": emotion[0],"dedos":emotion[1],"existe":emotion[2]})
     else:
         return jsonify({"error": "Captura no inicializada"})
 
@@ -217,9 +225,19 @@ def toggle_video():
 
 #funciones
 # Función para detectar emociones
-def detect_emotion(frame):
+def detect_emotion(frame,usuario_nombre):
     frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
+    # Comparar las imágenes
+    ruta_registro = f"app/static/images/registros/{usuario_nombre}.jpg"
+    ruta_login = f"app/static/images/logs/login/{usuario_nombre}LOG.jpg"
+    existe = False
+    if os.path.exists(ruta_registro) and os.path.exists(ruta_login):
+        similitud = verificaRostros(usuario_nombre, frame)
+        if similitud >= 0.70:
+                existe = True
+        else:
+            existe = False
+    
     #conteo de dedos
     
     with mp_hands.Hands(model_complexity=1,max_num_hands=1,min_detection_confidence=0.5,min_tracking_confidence=0.5) as hands:
@@ -342,7 +360,7 @@ def detect_emotion(frame):
                     print("neutro")
                     
 
-    return [emotion,fingers_counter]
+    return [emotion,fingers_counter,existe]
 
 # guardar imagen registro
 def reg_rostro(img, lista_resultados,ruta_completa):
@@ -396,3 +414,16 @@ def release_camera():
     if cap is not None:
         cap.release()
         cap = None
+    
+@app.route('/estado')
+def estado():
+    return render_template('estado.html')
+
+@app.route('/activacion')
+def activacion():
+    return render_template('activacion.html')
+
+@app.route('/baja')
+def baja():
+    return render_template('baja.html')
+    

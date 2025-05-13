@@ -87,16 +87,18 @@
               Autenticación para transacciones digitales en Telecomunicaciones
             </h4>
           </div>
-          <div class="col-12 text-center">
-            <button class="btn btn-primary" id="iniciaAuthenticacion">
+          <div class="col-md-8 mx-auto mt-5 text-center">
+            <button class="btn w-100 btn-primary" id="iniciaAuthenticacion">
               Iniciar Autenticación <i class="fa fa-user"></i>
             </button>
+          </div>
+          <div class="col-md-8 mx-auto mt-2">
             <a
               href="#"
               id="btnRegistrarse"
               data-bs-toggle="modal"
               data-bs-target="#modal_registro"
-              class="btn btn-outline-primary"
+              class="btn w-100 btn-outline-primary"
               >Registrarse <i class="fa fa-edit"></i
             ></a>
           </div>
@@ -107,6 +109,10 @@
             <div class="verificandoUsuario">
               Verificando al usuario: <span id="txtUsuario"></span>
             </div>
+            <div
+              id="mensajeReconocimiento"
+              class="oculto alert alert-info d-block"
+            ></div>
             <img id="videoFacial" src="" style="width: 100%" height="auto" />
             <div class="alert" id="txtVerificar"></div>
           </div>
@@ -138,7 +144,11 @@
             <div id="txtTiempoRestante"></div>
           </div>
           <div class="col-md-4 text-center cont2">
-            <span class="titulo_seccion">Cámara</span>
+            <span class="titulo_seccion">Cámara</span><br />
+            <div
+              id="mensajeReconocimientoEmocion"
+              class="oculto alert alert-info d-block"
+            ></div>
             <img id="video" src="" style="width: 100%; height: auto" />
             <div id="contenedorDeteccionEmocionesDedos">
               <div id="txtEmocionActual"></div>
@@ -179,6 +189,23 @@
 <script>
   // LOGIN
   const txtVerificar = document.getElementById("txtVerificar");
+  const mensajeReconocimiento = document.getElementById(
+    "mensajeReconocimiento"
+  );
+  const tiempoReconocimiento = 5;
+  let conteoReconocimiento = tiempoReconocimiento - 1;
+  let intervalConteoReconocimiento = null;
+  let intentosRestantes =
+    parseInt(localStorage.getItem("intentosRestantes")) > 0
+      ? parseInt(localStorage.getItem("intentosRestantes"))
+      : 3;
+  let bloqueo =
+    parseInt(localStorage.getItem("tiempoBloqueo")) > 0 ? true : false;
+  let tiempoBloqueo =
+    parseInt(localStorage.getItem("tiempoBloqueo")) > 0
+      ? parseInt(localStorage.getItem("tiempoBloqueo"))
+      : 60;
+  let intervalBloqueo = null;
   const txtInfoUsuarioPasos = document.getElementById("txtInfoUsuarioPasos");
   const mensajeEmociones = document.getElementById("mensajeEmociones");
   const txtGesto = document.getElementById("txtGesto");
@@ -195,6 +222,13 @@
   const pasoDedos = document.getElementById("pasoDedos");
   const txtGestoInfo = document.getElementById("txtGestoInfo");
   const txtDedosInfo = document.getElementById("txtDedosInfo");
+
+  const mensajeReconocimientoEmocion = document.getElementById(
+    "mensajeReconocimientoEmocion"
+  );
+  const tiempoReconocimientoEmocion = 5;
+  let conteoReconocimientoEmocion = tiempoReconocimientoEmocion - 1;
+  let intervalConteoReconocimientoEmocion = null;
   const btnPlay = document.getElementById("btnPlay");
   let sw_play = true;
   asignaIconoBoton();
@@ -236,7 +270,9 @@
     console.log(sw_play);
     if (sw_play) {
       clearInterval(interval_respuestas_emociones);
+      detieneConteoReconocimientoEmocion();
     } else {
+      iniciaConteoReconocimientoEmocion();
       continuaReconocimiento();
     }
     sw_play = !sw_play;
@@ -302,16 +338,84 @@
     document.getElementById("videoFacial").src = "";
     document.getElementById("video").src = "";
     if (login) {
+      iniciaConteoReconocimiento();
       document.getElementById("videoFacial").src =
         "{{ url_for('video_feed') }}"; // Reactivar facial
       interval_respuestas_facial = setInterval(() => {
-        txtVerificar.innerText = "Reconociendo...";
+        // iniciaConteoReconocimiento();
         enviaRostroLogin();
-      }, 4000);
+      }, tiempoReconocimiento * 1000);
     } else {
       iniciaReconocimientoEmociones();
     }
   };
+
+  // tiempo reconocimiento
+  function iniciaConteoReconocimiento() {
+    reiniciaConteoReconocimiento();
+    muestraMensajeReconocimiento();
+    intervalConteoReconocimiento = setInterval(() => {
+      mensajeReconocimiento.innerHTML = `Mira la camara y no te muevas ${conteoReconocimiento} seg. restantes <br/>Reconociendo...`;
+      conteoReconocimiento--;
+      if (conteoReconocimiento < 0) {
+        detieneConteoReconocimiento();
+        reiniciaConteoReconocimiento();
+      }
+    }, 1000);
+  }
+
+  function muestraMensajeReconocimiento() {
+    mensajeReconocimiento.classList.remove("oculto");
+    mensajeReconocimiento.classList.add("d-block");
+  }
+
+  function ocultaMensajeReconocimiento() {
+    mensajeReconocimiento.classList.add("oculto");
+    mensajeReconocimiento.classList.remove("d-block");
+  }
+
+  function reiniciaConteoReconocimiento() {
+    conteoReconocimiento = tiempoReconocimiento - 1;
+  }
+
+  function detieneConteoReconocimiento() {
+    reiniciaConteoReconocimiento();
+    ocultaMensajeReconocimiento();
+    clearInterval(intervalConteoReconocimiento);
+  }
+
+  // tiempo reconocimiento EMOCION
+  function iniciaConteoReconocimientoEmocion() {
+    reiniciaConteoReconocimientoEmocion();
+    muestraMensajeReconocimientoEmocion();
+    intervalConteoReconocimientoEmocion = setInterval(() => {
+      mensajeReconocimientoEmocion.innerHTML = `Mira la camara y no te muevas ${conteoReconocimientoEmocion} seg. restantes <br/>Reconociendo...`;
+      conteoReconocimientoEmocion--;
+      if (conteoReconocimientoEmocion < 0) {
+        detieneConteoReconocimientoEmocion();
+        reiniciaConteoReconocimientoEmocion();
+      }
+    }, 1000);
+  }
+
+  function muestraMensajeReconocimientoEmocion() {
+    mensajeReconocimientoEmocion.classList.remove("oculto");
+    mensajeReconocimientoEmocion.classList.add("d-block");
+  }
+
+  function ocultaMensajeReconocimientoEmocion() {
+    mensajeReconocimientoEmocion.classList.add("oculto");
+    mensajeReconocimiento.classList.remove("d-block");
+  }
+
+  function reiniciaConteoReconocimientoEmocion() {
+    conteoReconocimientoEmocion = tiempoReconocimientoEmocion - 1;
+  }
+
+  function detieneConteoReconocimientoEmocion() {
+    ocultaMensajeReconocimientoEmocion();
+    clearInterval(intervalConteoReconocimientoEmocion);
+  }
 
   // generar pasos
   const generaNumDedos = () => {
@@ -363,11 +467,18 @@
     if (sw_emocion && sw_dedos) {
       mensajeEmociones.classList.add("alert-success");
       mensajeEmociones.innerText = "ACCESO CORRECTO";
+      window.location.href = "/estado";
+      localStorage.clear();
     } else {
       mensajeEmociones.classList.add("alert-danger");
       usuario_logeado = null;
       login = false;
       mensajeEmociones.innerText = "Fallo la autenticación intente nuevamente";
+
+      reiniciaConteoReconocimiento();
+      reiniciaConteoReconocimientoEmocion();
+      detieneConteoReconocimiento();
+      detieneConteoReconocimientoEmocion();
     }
     nroPaso = 1;
     dedos_detectar = 0;
@@ -396,6 +507,7 @@
   };
 
   const iniciaReconocimientoEmociones = () => {
+    iniciaConteoReconocimientoEmocion();
     generaEmocion();
     generaNumDedos();
     iniciaConteoTiempo();
@@ -406,7 +518,7 @@
     document.getElementById("video").src = "{{ url_for('video_feed') }}"; // Reactivar emociones
     interval_respuestas_emociones = setInterval(
       enviaReconocimientoEmociones,
-      2000
+      tiempoReconocimientoEmocion * 1000
     );
   };
 
@@ -418,11 +530,19 @@
   };
 
   const enviaReconocimientoEmociones = async () => {
-    const response = await fetch("/emotion");
+    const response = await fetch(
+      `/emotion?usuario=${encodeURIComponent(usuario_logeado.usuario)}`
+    );
     const data = await response.json();
     sw_play = true;
     emocion_actual = data.emotion;
     dedos_actual = data.dedos;
+    existe_usuario = data.existe;
+
+    if (!existe_usuario) {
+      terminaPrueba();
+    }
+
     console.log("Emocion Actual:" + emocion_actual);
     console.log("Emocion detectar:" + emocion_detectar);
 
@@ -493,10 +613,18 @@
       setTimeout(() => {
         terminaPrueba();
       }, 1500);
+    } else {
+      detieneConteoReconocimientoEmocion();
+      iniciaConteoReconocimientoEmocion();
     }
   };
 
   const enviaRostroLogin = async () => {
+    if (bloqueo) {
+      iniciaBloqueo();
+      return;
+    }
+
     try {
       const response = await fetch(
         `/login_facial?usuario=${encodeURIComponent(usuario_logeado.usuario)}`
@@ -519,9 +647,21 @@
           iniciaReconocimientoEmociones();
         }, 1000);
       } else {
+        detieneConteoReconocimiento();
+        ocultaMensajeReconocimiento();
         txtVerificar.classList.add("alert-danger");
-        txtVerificar.innerText = "Usuario no reconocido";
-        terminaPrueba();
+        intentosRestantes = parseInt(intentosRestantes) - 1;
+        localStorage.setItem("intentosRestantes", intentosRestantes);
+        txtVerificar.innerText =
+          "Usuario no reconocido. Tienes " +
+          intentosRestantes +
+          " intentos mas";
+        iniciaConteoReconocimiento();
+        if (intentosRestantes == 0) {
+          detieneConteoReconocimiento();
+          iniciaBloqueo();
+        }
+        // terminaPrueba();
       }
     } catch (error) {
       console.error("Error en el envío de rostro:", error);
@@ -529,6 +669,33 @@
       // Reprograma la función para ejecutarse después de 4 segundos
     }
   };
+
+  function iniciaBloqueo() {
+    bloqueo = true;
+    localStorage.setItem("bloqueo", "true");
+    txtVerificar.classList.add("alert-danger");
+    intentosRestantes = parseInt(intentosRestantes) - 1;
+    txtVerificar.innerText = "";
+    clearInterval(interval_respuestas_facial);
+    intervalBloqueo = setInterval(() => {
+      txtVerificar.innerText = `El acceso se bloqueo durante ${tiempoBloqueo} segundo(s)`;
+      tiempoBloqueo--;
+      localStorage.setItem("tiempoBloqueo", tiempoBloqueo);
+      if (tiempoBloqueo < 1) {
+        terminaBloqueo();
+      }
+    }, 1000);
+  }
+
+  function terminaBloqueo() {
+    clearInterval(intervalBloqueo);
+    localStorage.clear();
+    iniciaDeteccion();
+    bloqueo = false;
+    tiempoBloqueo = 60;
+    intentosRestantes = 3;
+  }
+
   addEventListener("DOMContentLoaded", (event) => {
     toggleVideo();
   });

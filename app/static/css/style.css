@@ -6,3 +6,16 @@ body {
 .oculto {
   display: none;
 }
+
+.inputCheckBoxs {
+  height: 30px;
+  width: 30px;
+}
+
+.navbar a.navbar-brand {
+  color: black;
+}
+
+.navbar li a {
+  color: black;
+}

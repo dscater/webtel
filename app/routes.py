@@ -72,9 +72,8 @@ def login_facial():
 
             # Comparar las imágenes
             ruta_registro = f"app/static/images/registros/{usuario_nombre}.jpg"
-            ruta_login = f"app/static/images/logs/login/{usuario_nombre}LOG.jpg"
 
-            if os.path.exists(ruta_registro) and os.path.exists(ruta_login):
+            if os.path.exists(ruta_registro):
                 similitud = verificaRostros(usuario_nombre, frame)
                 if similitud >= 0.90:
                     return jsonify({"existe": True})

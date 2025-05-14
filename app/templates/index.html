@@ -75,10 +75,17 @@
     padding: 10px;
     background-color: gray;
   }
+
+  .contenedorPrincipal {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="row mt-3">
-  <div class="col-12">
+  <div class="col-12 contenedorPrincipal">
     <div class="card card-dark">
       <div class="card-body">
         <div class="row">
@@ -88,7 +95,7 @@
             </h4>
           </div>
           <div class="col-md-8 mx-auto mt-5 text-center">
-            <button class="btn w-100 btn-primary" id="iniciaAuthenticacion">
+            <button class="btn w-100 btn-primary btn-lg" id="iniciaAuthenticacion">
               Iniciar Autenticación <i class="fa fa-user"></i>
             </button>
           </div>
@@ -98,7 +105,7 @@
               id="btnRegistrarse"
               data-bs-toggle="modal"
               data-bs-target="#modal_registro"
-              class="btn w-100 btn-outline-primary"
+              class="btn w-100 btn-outline-primary btn-lg"
               >Registrarse <i class="fa fa-edit"></i
             ></a>
           </div>

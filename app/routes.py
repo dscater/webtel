@@ -15,6 +15,7 @@ import mediapipe as mp
 import math
 from app import db
 from app.models.usuario import Usuario
+from app.models.servicio import Servicio
 from math import acos, degrees
 
 # Inicializar la captura de video y MediaPipe
@@ -232,7 +233,7 @@ def detect_emotion(frame,usuario_nombre):
     existe = False
     if os.path.exists(ruta_registro) and os.path.exists(ruta_login):
         similitud = verificaRostros(usuario_nombre, frame)
-        if similitud >= 0.70:
+        if similitud >= 0.80:
                 existe = True
         else:
             existe = False
@@ -416,13 +417,57 @@ def release_camera():
     
 @app.route('/estado')
 def estado():
-    return render_template('estado.html')
+    servicio = Servicio.query.first()
+    return render_template('estado.html',servicio=servicio)
 
 @app.route('/activacion')
 def activacion():
-    return render_template('activacion.html')
+    servicio = Servicio.query.first()
+    return render_template('activacion.html',servicio=servicio)
 
 @app.route('/baja')
 def baja():
-    return render_template('baja.html')
+    servicio = Servicio.query.first()
+    return render_template('baja.html',servicio=servicio)
     
+@app.route('/guardar_servicios', methods=['POST'])
+def guardar_servicios():
+    data = request.get_json()  # <-- recibimos JSON del fetch
+
+    cineplus = data.get('cineplus', 0)
+    cloudgames = data.get('cloudgames', 0)
+    soundplus = data.get('soundplus', 0)
+    librosgo = data.get('librosgo', 0)
+
+    servicio = Servicio.query.first()
+    if not servicio:
+        return jsonify({'success': False, 'message': 'Servicio no encontrado'}), 404
+
+    servicio.cineplus = cineplus
+    servicio.cloudgames = cloudgames
+    servicio.soundplus = soundplus
+    servicio.librosgo = librosgo
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Servicios actualizados correctamente'})
+
+@app.route('/dar_baja_servicios', methods=['POST'])
+def dar_de_baja():
+    data = request.get_json()  # <-- recibimos JSON del fetch
+
+    cineplus = data.get('cineplus', 0)
+    cloudgames = data.get('cloudgames', 0)
+    soundplus = data.get('soundplus', 0)
+    librosgo = data.get('librosgo', 0)
+
+    servicio = Servicio.query.first()
+    if not servicio:
+        return jsonify({'success': False, 'message': 'Servicio no encontrado'}), 404
+
+    servicio.cineplus = cineplus
+    servicio.cloudgames = cloudgames
+    servicio.soundplus = soundplus
+    servicio.librosgo = librosgo
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Servicios actualizados correctamente'})

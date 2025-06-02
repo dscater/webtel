@@ -12,6 +12,7 @@
         <div class="card-body rounded-0">
           <h2>Servicios Activos</h2>
           <div class="row">
+            {% if servicio.cineplus == 1 %}
             <div class="col-md-6">
               <strong>Servicio Activo 1: CinePls HD</strong>
               <ul>
@@ -23,6 +24,7 @@
                 <li>Dispositivos Registrados: 2 de 3 permitidos</li>
               </ul>
             </div>
+            {% endif %} {% if servicio.cloudgames == 1 %}
             <div class="col-md-6">
               <strong>Servicio Activo 2: CloudGames Pro</strong>
               <ul>
@@ -36,19 +38,40 @@
                 </li>
               </ul>
             </div>
+            {% endif %} {% if servicio.soundplus == 1 %}
+            <div class="col-md-6">
+              <strong>Opciones Disponibles - SoundPlus</strong>
+              <ul>
+                <li>Estado: Activo</li>
+                <li>Plan Actual: Básico</li>
+                <li>Fecha de Activación: 01/09/2024</li>
+                <li>Próxima Fecha de Facturación: 01/12/2024</li>
+                <li>Costo Mensual: $8</li>
+                <li>
+                  Advertencia: Conexión inestable detectada (última semana).
+                </li>
+              </ul>
+            </div>
+            {% endif %} {% if servicio.librosgo == 1 %}
+            <div class="col-md-6">
+              <strong>Opciones Disponibles - LibrosGo</strong>
+              <ul>
+                <li>Estado: Activo</li>
+                <li>Plan Actual: Básico</li>
+                <li>Fecha de Activación: 01/09/2024</li>
+                <li>Próxima Fecha de Facturación: 01/12/2024</li>
+                <li>Costo Mensual: $8</li>
+                <li>
+                  Advertencia: Conexión inestable detectada (última semana).
+                </li>
+              </ul>
+            </div>
+            {% endif %}
             <div class="col-md-6">
               <strong>Opciones Disponibles</strong>
               <ul>
                 <li>[Actualizar Plan]</li>
                 <li>[Consultar Historial de Pagos]</li>
-                <li>[Cancelar Servicio]</li>
-              </ul>
-            </div>
-            <div class="col-md-6">
-              <strong>Opciones Disponibles</strong>
-              <ul>
-                <li>[Mejorar Plan]</li>
-                <li>[Revisar Configuración de Red]</li>
                 <li>[Cancelar Servicio]</li>
               </ul>
             </div>

@@ -23,20 +23,16 @@
                       <ul>
                         <li>
                           Descripción: Acceso ilimitado a una amplía selección
-                          de peliculas y series en alta definición, incluyendo
+                          de películas y series en alta definición, incluyendo
                           estrenos y clásicos.
                         </li>
                         <li>Precio Mensual: $12</li>
                       </ul>
                     </td>
                     <td>
-                      <input
-                        class="inputCheckBoxs"
-                        type="checkbox"
-                        name=""
-                        id=""
-                        checked
-                      />
+                      <input class="inputCheckBoxs" type="checkbox"
+                      name="cineplus" {% if servicio.cineplus == 1 %}checked
+                      disabled{% endif %} />
                     </td>
                   </tr>
                   <tr>
@@ -48,19 +44,16 @@
                       <ul>
                         <li>
                           Descripción: Acceso ilimitado a una biblioteca de
-                          videjuegos de alta calidad, sin necesidad de consola o
-                          hardware especializado.
+                          videojuegos de alta calidad, sin necesidad de consola
+                          o hardware especializado.
                         </li>
                         <li>Precio Mensual: $20</li>
                       </ul>
                     </td>
                     <td>
-                      <input
-                        class="inputCheckBoxs"
-                        type="checkbox"
-                        name=""
-                        id=""
-                      />
+                      <input class="inputCheckBoxs" type="checkbox"
+                      name="cloudgames" {% if servicio.cloudgames == 1 %}checked
+                      disabled{% endif %} />
                     </td>
                   </tr>
                   <tr>
@@ -70,18 +63,17 @@
                       >
                       <ul>
                         <li>
-                          Descripción: Acceso ilimitado a una biblioteca de más de 50 millones de canciones y playlists personalizados.
+                          Descripción: Acceso ilimitado a una biblioteca de más
+                          de 50 millones de canciones y playlists
+                          personalizados.
                         </li>
                         <li>Precio Mensual: $8</li>
                       </ul>
                     </td>
                     <td>
-                      <input
-                        class="inputCheckBoxs"
-                        type="checkbox"
-                        name=""
-                        id=""
-                      />
+                      <input class="inputCheckBoxs" type="checkbox"
+                      name="soundplus" {% if servicio.soundplus == 1 %}checked
+                      disabled{% endif %} />
                     </td>
                   </tr>
                   <tr>
@@ -98,12 +90,9 @@
                       </ul>
                     </td>
                     <td>
-                      <input
-                        class="inputCheckBoxs"
-                        type="checkbox"
-                        name=""
-                        id=""
-                      />
+                      <input class="inputCheckBoxs" type="checkbox"
+                      name="librosgo" {% if servicio.librosgo == 1 %}checked
+                      disabled{% endif %} />
                     </td>
                   </tr>
                 </tbody>
@@ -115,6 +104,7 @@
                 class="btn btn-primary"
                 data-bs-toggle="modal"
                 data-bs-target="#modal_det_servicio"
+                id="btnConfirmarServicios"
               >
                 <i class="fa fa-check"></i> Confirmar
               </button>
@@ -134,58 +124,9 @@
           <div class="col-12">
             <h4 class="w-100 text-center">Detalles del servicio</h4>
           </div>
-          <div class="col-12">
-            <strong>Nombre del Servicio:</strong>
-            <ul>
-              <li>Servicio Seleccionado: CinePlus HD</li>
-            </ul>
-          </div>
-          <div class="col-12">
-            <strong>Descripción del Servicio:</strong>
-            <ul>
-              <li>Acceso ilimitado a películas y series en HD</li>
-            </ul>
-          </div>
-          <div class="col-12">
-            <strong>Detalles de la Transacción</strong>
-            <ul>
-              <li>Tipo de Transacción: Activación</li>
-              <li>Precio Mensual: $12</li>
-              <li>
-                Condiciones: Sin permanencia mínima, hasta 3 dispositivos
-                simultáneamente
-              </li>
-            </ul>
-          </div>
-          <div class="col-12">
-            <strong>Beneficios Adicionales:</strong>
-            <ul>
-              <li>Contenido exclusivo de producciones originales.</li>
-              <li>Descarga de contenido para ver sin conexión</li>
-            </ul>
-          </div>
-          <div class="col-12">
-            <strong>Resumen Financiero:</strong>
-            <ul>
-              <li>Costo inicial: $12 (primer mes)</li>
-            </ul>
-          </div>
-          <div class="col-12">
-            <strong>Fecha de Renovación: </strong>03/01/2024
-          </div>
-          <div class="col-12">
-            <strong>Advertencias (si aplica):</strong>
-            <ul>
-              <li>
-                La activación de este servicio iniciará el cobro automático
-                mensual.
-              </li>
-              <li>
-                Puedes cancelar en cualquier momento antes de la fecha de
-                renovación
-              </li>
-            </ul>
-          </div>
+        </div>
+        <div id="listaServiciosActivos">
+          <!-- Aquí se llenará dinámicamente -->
         </div>
       </div>
       <div class="modal-footer justify-content-between">
@@ -198,9 +139,9 @@
         </button>
         <button
           type="button"
-          id="confirmar"
           class="btn btn-success"
           data-bs-dismiss="modal"
+          id="btnGuardarServicios"
         >
           Confirmar
         </button>
@@ -210,5 +151,175 @@
 </div>
 
 {% endblock %} {% block scripts %}
-<script></script>
+<script>
+  document
+    .getElementById("btnConfirmarServicios")
+    .addEventListener("click", function () {
+      const lista = document.getElementById("listaServiciosActivos");
+      lista.innerHTML = ""; // Limpiar lista previa
+
+      const checkboxes = document.querySelectorAll(".inputCheckBoxs");
+
+      const servicios = {
+        cineplus: {
+          nombre: "CinePlus HD",
+          descripcion: "Acceso ilimitado a películas y series en HD",
+          tipo: "Activación",
+          precio: "$12",
+          condiciones:
+            "Sin permanencia mínima, hasta 3 dispositivos simultáneamente",
+          beneficios: [
+            "Contenido exclusivo de producciones originales.",
+            "Descarga de contenido para ver sin conexión",
+          ],
+          costoInicial: "$12 (primer mes)",
+          renovacion: "03/01/2024",
+          advertencias: [
+            "La activación de este servicio iniciará el cobro automático mensual.",
+            "Puedes cancelar en cualquier momento antes de la fecha de renovación",
+          ],
+        },
+        cloudgames: {
+          nombre: "CloudGames Pro",
+          descripcion: "Juega en la nube sin necesidad de consola",
+          tipo: "Activación",
+          precio: "$20",
+          condiciones: "Plan básico, hasta 2 dispositivos",
+          beneficios: [
+            "Catálogo amplio de juegos AAA.",
+            "Sin necesidad de descarga ni instalación.",
+          ],
+          costoInicial: "$20 (primer mes)",
+          renovacion: "03/01/2024",
+          advertencias: [
+            "Conexión a internet estable recomendada.",
+            "Este servicio se renueva automáticamente.",
+          ],
+        },
+        soundplus: {
+          nombre: "SoundPlus",
+          descripcion: "Música sin límites y sin anuncios",
+          tipo: "Activación",
+          precio: "$8",
+          condiciones: "Calidad Hi-Fi, descarga de pistas offline",
+          beneficios: [
+            "Listas personalizadas.",
+            "Acceso anticipado a lanzamientos exclusivos.",
+          ],
+          costoInicial: "$8 (primer mes)",
+          renovacion: "03/01/2024",
+          advertencias: [
+            "Este servicio puede consumir muchos datos móviles.",
+            "Renovación automática mensual habilitada.",
+          ],
+        },
+        librosgo: {
+          nombre: "LibrosGo",
+          descripcion: "Lee donde quieras, cuando quieras",
+          tipo: "Activación",
+          precio: "$10",
+          condiciones: "Acceso ilimitado a biblioteca digital",
+          beneficios: [
+            "Modo offline disponible.",
+            "Sin límites de lectura mensual.",
+          ],
+          costoInicial: "$10 (primer mes)",
+          renovacion: "03/01/2024",
+          advertencias: [
+            "La cancelación elimina el acceso inmediato.",
+            "Algunos títulos pueden estar sujetos a disponibilidad.",
+          ],
+        },
+      };
+
+      let alMenosUno = false;
+
+      checkboxes.forEach((cb) => {
+        if (cb.checked && servicios[cb.name]) {
+          alMenosUno = true;
+          const s = servicios[cb.name];
+
+          const html = `
+        <div class="row mb-4 border-bottom pb-3">
+          <div class="col-12"><strong>Nombre del Servicio:</strong>
+            <ul><li>Servicio Seleccionado: ${s.nombre}</li></ul>
+          </div>
+          <div class="col-12"><strong>Descripción del Servicio:</strong>
+            <ul><li>${s.descripcion}</li></ul>
+          </div>
+          <div class="col-12"><strong>Detalles de la Transacción</strong>
+            <ul>
+              <li>Tipo de Transacción: ${s.tipo}</li>
+              <li>Precio Mensual: ${s.precio}</li>
+              <li>Condiciones: ${s.condiciones}</li>
+            </ul>
+          </div>
+          <div class="col-12"><strong>Beneficios Adicionales:</strong>
+            <ul>${s.beneficios.map((b) => `<li>${b}</li>`).join("")}</ul>
+          </div>
+          <div class="col-12"><strong>Resumen Financiero:</strong>
+            <ul><li>Costo inicial: ${s.costoInicial}</li></ul>
+          </div>
+          <div class="col-12"><strong>Fecha de Renovación:</strong> ${
+            s.renovacion
+          }</div>
+          <div class="col-12"><strong>Advertencias (si aplica):</strong>
+            <ul>${s.advertencias.map((a) => `<li>${a}</li>`).join("")}</ul>
+          </div>
+        </div>
+        `;
+
+          lista.insertAdjacentHTML("beforeend", html);
+        }
+      });
+
+      if (!alMenosUno) {
+        lista.innerHTML = `<div class="col-12"><p>No hay servicios activos seleccionados.</p></div>`;
+      }
+    });
+
+  document
+    .getElementById("btnGuardarServicios")
+    .addEventListener("click", function () {
+      const data = {
+        cineplus: document.querySelector('input[name="cineplus"]').checked
+          ? 1
+          : 0,
+        cloudgames: document.querySelector('input[name="cloudgames"]').checked
+          ? 1
+          : 0,
+        soundplus: document.querySelector('input[name="soundplus"]').checked
+          ? 1
+          : 0,
+        librosgo: document.querySelector('input[name="librosgo"]').checked
+          ? 1
+          : 0,
+      };
+
+      // Enviar al backend con fetch
+      fetch("/guardar_servicios", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+        .then((response) => response.json())
+        .then((json) => {
+          if (json.success) {
+            alert(json.message);
+            const modal = bootstrap.Modal.getInstance(
+              document.getElementById("modal_det_servicio")
+            );
+            modal.hide();
+          } else {
+            alert("Error: " + json.message);
+          }
+        })
+        .catch((error) => {
+          alert("Error en la conexión con el servidor.");
+          console.error(error);
+        });
+    });
+</script>
 {% endblock %}

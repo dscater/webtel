@@ -33,9 +33,7 @@
                       <input
                         class="inputCheckBoxs"
                         type="checkbox"
-                        name=""
-                        id=""
-                        checked
+                        name="cineplus"
                       />
                     </td>
                   </tr>
@@ -58,8 +56,7 @@
                       <input
                         class="inputCheckBoxs"
                         type="checkbox"
-                        name=""
-                        id=""
+                        name="cloudgames"
                       />
                     </td>
                   </tr>
@@ -82,8 +79,7 @@
                       <input
                         class="inputCheckBoxs"
                         type="checkbox"
-                        name=""
-                        id=""
+                        name="soundplus"
                       />
                     </td>
                   </tr>
@@ -104,8 +100,7 @@
                       <input
                         class="inputCheckBoxs"
                         type="checkbox"
-                        name=""
-                        id=""
+                        name="librosgo"
                       />
                     </td>
                   </tr>
@@ -163,23 +158,39 @@
           <div class="col-12">
             <strong>Impacto de la Baja:</strong>
             <ul>
-              <li>Se perderá acceso al catálogo de contenido a partir de la fecha de cancelación</li>
-              <li>No se realizarán más cobros a partir del próximo ciclon de facturación</li>
-              <li>Descargas de contenido sin conexión dejarán de estar disponibles</li>
+              <li>
+                Se perderá acceso al catálogo de contenido a partir de la fecha
+                de cancelación
+              </li>
+              <li>
+                No se realizarán más cobros a partir del próximo ciclon de
+                facturación
+              </li>
+              <li>
+                Descargas de contenido sin conexión dejarán de estar disponibles
+              </li>
             </ul>
           </div>
           <div class="col-12">
             <strong>Resumen Financiero:</strong>
             <ul>
               <li>Costo Final Pendiente: $0 (si ya ha pagado el mes actual)</li>
-              <li>Posible Penalización: No aplica (en caso de contrato sin permanencia)</li>
+              <li>
+                Posible Penalización: No aplica (en caso de contrato sin
+                permanencia)
+              </li>
             </ul>
           </div>
           <div class="col-12">
             <strong>Advertencias (si aplica):</strong>
             <ul>
-              <li>Si decides reactivar el servicio más adelante, los costos pueden varia según las promociones vigentes</li>
-              <li>Algunos beneficios acumulados, como descuentos, no serán restaurados
+              <li>
+                Si decides reactivar el servicio más adelante, los costos pueden
+                varia según las promociones vigentes
+              </li>
+              <li>
+                Algunos beneficios acumulados, como descuentos, no serán
+                restaurados
               </li>
             </ul>
           </div>
@@ -207,5 +218,148 @@
 </div>
 
 {% endblock %} {% block scripts %}
-<script></script>
+<script>
+  const servicios = {
+    cineplus: {
+      nombre: "CinePlus HD",
+      descripcion: "Acceso ilimitado a películas y series en HD",
+      precio: "$12",
+      tipo: "Baja",
+      condiciones:
+        "Sin permanencia mínima, hasta 3 dispositivos simultáneamente",
+      impacto: [
+        "Se perderá acceso al catálogo de contenido a partir de la fecha de cancelación",
+        "No se realizarán más cobros a partir del próximo ciclo de facturación",
+        "Descargas de contenido sin conexión dejarán de estar disponibles",
+      ],
+      resumen: [
+        "Costo Final Pendiente: $0 (si ya ha pagado el mes actual)",
+        "Posible Penalización: No aplica (en caso de contrato sin permanencia)",
+      ],
+      advertencias: [
+        "Si decides reactivar el servicio más adelante, los costos pueden variar según las promociones vigentes",
+        "Algunos beneficios acumulados, como descuentos, no serán restaurados",
+      ],
+    },
+    cloudgames: {
+      nombre: "CloudGames Pro",
+      descripcion:
+        "Acceso ilimitado a videojuegos sin necesidad de consola o hardware especializado",
+      precio: "$20",
+      tipo: "Baja",
+      condiciones: "Acceso inmediato, sin restricciones",
+      impacto: [
+        "Perderás acceso a todos los juegos al finalizar el ciclo actual",
+        "Tu historial de juego no se guardará en caso de reactivación tardía",
+      ],
+      resumen: ["Costo Final Pendiente: $0", "Penalización: No aplica"],
+      advertencias: [
+        "Puedes perder avances si reactivas más tarde",
+        "Las promociones actuales pueden no estar disponibles en el futuro",
+      ],
+    },
+    soundplus: {
+      nombre: "SoundPlus",
+      descripcion:
+        "Acceso ilimitado a más de 50 millones de canciones y playlists personalizados",
+      precio: "$8",
+      tipo: "Baja",
+      condiciones: "Uso ilimitado hasta el final del mes",
+      impacto: [
+        "Tus playlists dejarán de estar disponibles",
+        "No se podrá escuchar música offline",
+      ],
+      resumen: ["Costo Final Pendiente: $0"],
+      advertencias: ["La reactivación no recupera contenido personalizado"],
+    },
+    librosgo: {
+      nombre: "LibrosGo",
+      descripcion:
+        "Acceso a una vasta colección de eBooks y audiolibros en todos los géneros",
+      precio: "$8",
+      tipo: "Baja",
+      condiciones: "Sin compromiso",
+      impacto: [
+        "Los libros descargados ya no estarán accesibles",
+        "Pérdida de marcadores y progreso de lectura",
+      ],
+      resumen: ["Costo Final Pendiente: $0"],
+      advertencias: ["La cuenta volverá a estado gratuito si se reactiva"],
+    },
+  };
+
+  document
+    .querySelector('[data-bs-target="#modal_det_servicio"]')
+    .addEventListener("click", () => {
+      const seleccionados = Array.from(
+        document.querySelectorAll(".inputCheckBoxs")
+      )
+        .filter((chk) => chk.checked)
+        .map((chk) => chk.name);
+
+      const modalBody = document.querySelector(
+        "#modal_det_servicio .modal-body"
+      );
+      modalBody.innerHTML = `<h4 class="w-100 text-center">Detalles de la baja de servicios</h4>`;
+
+      seleccionados.forEach((servicio) => {
+        const s = servicios[servicio];
+        modalBody.innerHTML += `
+        <div class="mb-3">
+          <strong>Nombre del Servicio:</strong>
+          <ul><li>${s.nombre}</li></ul>
+
+          <strong>Descripción:</strong>
+          <ul><li>${s.descripcion}</li></ul>
+
+          <strong>Tipo de Transacción:</strong>
+          <ul><li>${s.tipo}</li></ul>
+
+          <strong>Precio Mensual:</strong>
+          <ul><li>${s.precio}</li></ul>
+
+          <strong>Condiciones:</strong>
+          <ul><li>${s.condiciones}</li></ul>
+
+          <strong>Impacto de la Baja:</strong>
+          <ul>${s.impacto.map((i) => `<li>${i}</li>`).join("")}</ul>
+
+          <strong>Resumen Financiero:</strong>
+          <ul>${s.resumen.map((i) => `<li>${i}</li>`).join("")}</ul>
+
+          <strong>Advertencias:</strong>
+          <ul>${s.advertencias.map((i) => `<li>${i}</li>`).join("")}</ul>
+        </div>
+      `;
+      });
+    });
+
+  // Al confirmar, enviamos por fetch/POST la baja
+  document.getElementById("confirmar").addEventListener("click", () => {
+    const seleccionados = Array.from(
+      document.querySelectorAll(".inputCheckBoxs")
+    )
+      .filter((chk) => chk.checked)
+      .map((chk) => chk.name);
+
+    fetch("/dar_baja_servicios", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}",
+      },
+      body: JSON.stringify({ servicios: seleccionados }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        alert("Servicios dados de baja correctamente.");
+        location.reload();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Hubo un error al dar de baja los servicios.");
+      });
+  });
+</script>
+
 {% endblock %}

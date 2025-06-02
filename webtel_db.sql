@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost:3306
--- Tiempo de generación: 14-10-2024 a las 15:02:55
+-- Tiempo de generación: 02-06-2025 a las 20:17:46
 -- Versión del servidor: 8.0.30
--- Versión de PHP: 8.1.10
+-- Versión de PHP: 8.2.22
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -24,6 +24,27 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `servicios`
+--
+
+CREATE TABLE `servicios` (
+  `id` bigint NOT NULL,
+  `cineplus` int NOT NULL DEFAULT '0',
+  `cloudgames` int NOT NULL DEFAULT '0',
+  `soundplus` int NOT NULL DEFAULT '0',
+  `librosgo` int NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `servicios`
+--
+
+INSERT INTO `servicios` (`id`, `cineplus`, `cloudgames`, `soundplus`, `librosgo`) VALUES
+(1, 1, 0, 0, 0);
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `usuarios`
 --
 
@@ -38,6 +59,12 @@ CREATE TABLE `usuarios` (
 --
 
 --
+-- Indices de la tabla `servicios`
+--
+ALTER TABLE `servicios`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indices de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -47,6 +74,12 @@ ALTER TABLE `usuarios`
 --
 -- AUTO_INCREMENT de las tablas volcadas
 --
+
+--
+-- AUTO_INCREMENT de la tabla `servicios`
+--
+ALTER TABLE `servicios`
+  MODIFY `id` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
